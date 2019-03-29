@@ -8,104 +8,46 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 require(numDeriv)
+require(ggplot2)
 ```
-
-## YSS abstract
-
-The price of power: Robust, value-based clinical trial design when nuisance parameters are unknown
-
-Background: 
-
-Methods:
-
-Results: 
-
-Conclusion:
-
-
 
 ## Introduction
 
-How best to frame / target? Could set up very generally as an alternative to constrained optimisation for SSD, or focus specifically on SSR for cases where the interim estimate will be imprecise (e.g. cRCTs). But SSR is tied to the constrained view, and that's what we fundamentally object to.
+## Running example
 
- - Propose a bi-criteria optimisation problem for SSD rather than constrained (keeping type I fixed), removing the threshold myth.
- - Further propose that a this can be reduced to a linear scalarised single criteria problem
- - Applying can just mean plotting the power curve and choosing the best point, which we argue is done in an implicit manner when we try to game the sample size calc. So for a single power curve we don't need the scalarized formulation, but once we have chosen the solution we have our scalar.
- - Implications more interesting when we don't have a single power curve, i.e. when the nuisance parameter is not known.
- - Far less sensitivity to the np than with the constrained method. So, although game the calc with the constrained method might lead to the same decision when the np is known, that won't be the case if we do any re-estimation (because there is no clear way to game in the restimation setting).
- - We can also get a "robust" choice of n with our method since there will always be a natural maximum.
- 
- 
- 
-
-
-
-[@Norman2012] - Sample size calculations: should the emperor's clothes be off the peg or made to measure?
-
-[@Edwards1997] - Why "underpowered" trials are not necessarily unethical
-
-[@Girling2007] - Sample-size calculations for trials that inform individual treatment decisions: a 'true-choice' approach
-
-[@Claxton1999] - The irrelevance of inference: a decision-making approach to the stochastic evaluation of health care technologies
-
-[@Grayling2018] - Blinded and unblinded sample size reestimation procedures for stepped-wedge cluster randomized trial
-
-[@Altman1980] - Statistics And Ethics In Medical Research: III How Large A Sample?
-
-[@DeMartini2010] - Conservative Sample Size Estimation in Nonparametrics
-
-The dominant paradigm in clinical trial samle size determination is based on power, the probability of rejecting a null hypothesis conditional on an alternative hypothesis being true. Assuming that the type I error rate is fixed, the two objectives of minimising sample size and maximising power are in conflict. The conventional solution to resolving this is to declare some threshold level of power which must be met, and then find the smallest sample size that satisfies this criteria. As has been previously discussed by others, a major flaw of this approach is that the cost associated with sampling is ignored.
-
-An alternative approach to SSD is to plot the power of the trial as a function of its sample size and to choose the point deemed to best balance cost (i.e. sample size) and benefit (i.e. power). To help describe this decision-making process formally, we can introduce a _value_ function $v(n, \beta): \mathbb{N} \times [0,1] \rightarrow \mathbb{R}$ which descibes our preferences $\succ$ between all possible pairs of sample size and type II error. Specifically, $v$ is such that
-
+Value function is
 $$
-(n, \beta) \succ (n', \beta') \Leftrightarrow v(n, \beta) > v(n', \beta').
-$$
-Now, if we have a function $f(n)$ that returns the type II error rate obtained for any given choice of sample size (conditional on the remaining aspects of the trial design) then we can define our optimal sample size as
-
-$$
-n^* = {\arg\min}_{n \in \mathbb{N}} v(n, f(n)).
-$$
-What might the value function look like? Consider first a slice of the function with power fixed at some value $\beta_1$, denoted $v_{\beta_1}(n)$. Clearly this will be a strictly decreasing function in $n$, for all $\beta_1$. We propose that it will also be linear, and that the gradient is the same for all $\beta_1$ - that is, the cost of increasing the sample size by some amount $\Delta$ is independant of the starting point $(n_1, \beta_1)$. If a similar linear structure holds for $v_{n_1}(\beta)$, then we have a constant rate of substitution between $n$ and $\beta$. In this case a suitable value function will be of the form 
-
-$$
-v(n, \beta) = \beta + \lambda n
+v(n, \beta) = \beta + \lambda n.
 $$
 ```{r}
-value <- function(x)
+value <- function(x, lambda)
 {
   n <- x[1]; pow <- x[2]
-  a <- 2
-  #(1 - exp(-a*pow))/a - lambda*n
   pow - lambda*n
 }
 ```
 
-This corresponds with linear indifference curves:
 
+Plotting value for a two-sample t-test over a range of $n$:
 ```{r}
-library(ggplot2)
-
 lambda <- 0.025
-df <- expand.grid(n=1:50, pow=seq(0,1,0.01))
-df$v <- apply(df, 1, value)
 
-ggplot(df, aes(n, pow, z=v, colour=..level..)) + geom_contour()
-```
+df <- expand.grid(n=2:50, pow=1)
+df$pow <- sapply(df$n, function(n) power.t.test(n=n, delta=1)$power)
+df$v <- apply(df, 1, value, lambda = lambda)
 
-Given such a value function, our choice of sample size can be made by plotting the line of feasible points over the above graph:
+opt <- df[which.max(df$v),]
 
-```{r}
+# value contours
+df2 <- expand.grid(n=2:50, pow=seq(0,1,0.05))
+df2$v <- apply(df2, 1, value, lambda=lambda)
 
-df2 <- expand.grid(n=2:50, pow=1)
-df2$pow <- sapply(df2$n, function(n) power.t.test(n=n, delta=1)$power)
-df2$v <- apply(df2, 1, value)
+ggplot(df2, aes(n, pow)) + geom_contour(aes(z=v, colour=..level..)) +
+  geom_point(data=df) + geom_point(data=opt, colour="red") +
+  geom_abline(slope=lambda, intercept = opt$p - lambda*opt$n, colour="red") +
+  ylab("Power") + theme_minimal()
 
-opt <- df2[which.max(df2$v),]
-
-ggplot(df, aes(n, pow)) + geom_contour(aes(z=v, colour=..level..)) +
-  geom_point(data=df2) + geom_point(data=opt, colour="red") +
-  geom_abline(slope=lambda, intercept = opt$p - lambda*opt$n, colour="red")
+#ggsave("./paper/figures/ex1_tangent.pdf", height=9, width=14, units="cm")
 ```
 
 As the figure suggests, if our assumption about the form of the value function holds then we can determine the value of $\lambda$ by simply plotting the power curve and choosing $n$; $\lambda$ is then the gradiant of the tangent of the power curve at that point. Is this an accurate representation of our preferences? Do we aggree with its implications? Note that, for example, $\lambda = 0.025$ implies that $(n=0, \beta=0) \sim (n=40, \beta=1)$, and so 40 is the maximum sample size we would ever consider. When it comes to determining $\lambda$, we could use any hypothetical "power" curve and if our assumptions hold we should always choose the sample size that gives the same tangent gradient. For example, consider two other power curves obtained by changing the standard deviation from 1 to 0.7 and 1.3:
@@ -113,16 +55,16 @@ As the figure suggests, if our assumption about the form of the value function h
 ```{r}
 df3 <- expand.grid(n=2:50, pow=1)
 df3$pow <- sapply(df3$n, function(n) power.t.test(n=n, delta=1, sd=0.7)$power)
-df3$v <- apply(df3, 1, value)
+df3$v <- apply(df3, 1, value, lambda = lambda)
 opt3 <- df3[which.max(df3$v),]
 
 df4 <- expand.grid(n=2:50, pow=1)
 df4$pow <- sapply(df4$n, function(n) power.t.test(n=n, delta=1, sd=1.3)$power)
-df4$v <- apply(df4, 1, value)
+df4$v <- apply(df4, 1, value, lambda = lambda)
 opt4 <- df4[which.max(df4$v),]
 
-ggplot(df, aes(n, pow)) + geom_contour(aes(z=v, colour=..level..)) +
-  geom_point(data=df2) + geom_point(data=opt, colour="red") +
+ggplot(df2, aes(n, pow)) + geom_contour(aes(z=v, colour=..level..)) +
+  geom_point(data=df) + geom_point(data=opt, colour="red") +
   geom_abline(slope=lambda, intercept = opt$p - lambda*opt$n, colour="red") +
   
   geom_point(data=df3, shape=15) + geom_point(data=opt3, colour="red") +
@@ -131,13 +73,17 @@ ggplot(df, aes(n, pow)) + geom_contour(aes(z=v, colour=..level..)) +
   geom_point(data=df4, shape=17) + geom_point(data=opt4, colour="red") +
   geom_abline(slope=lambda, intercept = opt4$p - lambda*opt4$n, colour="red") +
   
-  geom_hline(yintercept = 0.8, linetype=2)
+  geom_hline(yintercept = 0.8, linetype=2) +
+  
+  ylab("Power") + theme_minimal()
+
+#ggsave("./paper/figures/ex1_3tangents.pdf", height=9, width=14, units="cm")
 
 cbind(rbind(opt3, opt, opt4), sd=c(0.7, 1, 1.3))
 ```
-On the face of it, this approach seems to be totally inconsistent with the usual method of setting a nominal power to detect our MCID of $\delta = 1$ at (say) 80\%. Under that model, an initial guess of $\sigma = 1$ gives a sample size of $n = 17$, and if we were told our initial estimate of $\sigma = 1$ was incorrent and that actually $\sigma = 1.3$, we should then revise the sample size to $n = 27$ - not $n = 18$ as suggested by our model. But, the common practice of revising the MCID to fit the sample size that is condiered "feasible" suggests that the two methods may actually agree. So, we might reason that $n = 27$ is not feasible and unlikely to be funded, and pretend that our MCID is actually $\delta =$ `r round(power.t.test(n=18, sd=1.3, power=0.8)$delta, 2)`. Then, $n = 18$ will give us 80\% power for this new MCID, but 61\% for the original.
 
-## Implications - unknown nuisance parameters
+
+### Unknown nuisance parameters
 
 In the above we have proposed a _normative_ model for choosing the sample size of a trial, and argured that it may also be a _descriptive_ model of what happens in practice, in which case there would be no benefit of using it as it will lead to the same decisions. However, the potential implications of our model are hinted at in the above example - when the true power function is not known, as will be the case whenever we are uncertain about a nuisance parameter value, using a value function to make decisions provides a unified approach which will ensure consistency. 
 
@@ -217,6 +163,8 @@ Plotting the differences in the optimal and fixed values for a range of sds, we 
 
 Note that for the same lambda, the optimal designs and their values will be constant. As we change the fixed sample size, we change the value of sd for which the fixed design is also the optimal. We see that as this sd value reduces, the fixed value curve becomes more discrepant. In the above example, if we thought an sd of 0.7 was most likely but used the same lambda, we would get a trial of 95% power and n=145. But when we compare a fixed design of n=145 against the optimal the largest difference is around 0.127 - much larger than the 0.05 before. So our approach looks like it won't work well if the plausable sd values correspond with a very high power. In conrast, if lambda is the same but we think the sd is higher at 1.5, the optimal design is n=345 (giving power 75%) and as a fixed design this is very robust around sd=1.5. So broadly speaking, the lambda gives the optimal designs and the maximum sd for which a trial can be considered, and a fixed design approach works better the closer our plausable sd rage is to that maximum (or equivalently, the lower the power of the locally optimal design at the best guess). 
 
+## Example - cluster RCT
+
 One thing we can extend to is multiple design parameters. This has run in to trouble before when we couldn't find a similar maximum "robust" design, but if we just do as above and compare fixed and optimal designs then the extension may work.
 
 ```{r}
@@ -238,7 +186,7 @@ f <- function(x, var_t, rho)
 }
 
 opt <- expand.grid(var_t=seq(0.8, 2, 0.05), rho=seq(0,0.2,0.01))
-opt <- cbind(opt, t(apply(opt, 1, function(x) optim(c(10,10), fn=f, lower=c(2,2), upper=c(50,1000), var_t=x[1], rho=x[2])$par)))
+opt <- cbind(opt, t(apply(opt, 1, function(x) optim(c(10,10), fn=f, lower=c(2,2), upper=c(50,1000), var_t=x[1], rho=x[2], method="L-BFGS-B")$par)))
 names(opt)[3:4] <- c("k", "n")
 opt$v <- apply(opt, 1, function(x) f(x[3:4],x[1],x[2]))
 
@@ -249,16 +197,128 @@ rob$v <- apply(rob, 1, function(x) f(x[3:4],x[1],x[2]))
 
 rob$d <- opt$v - rob$v
 
-ggplot(rob, aes(var_t, rho, z=d, colour=..level..)) + geom_contour(breaks=seq(0,-0.1,-0.01))
+ggplot(rob, aes(var_t, rho, z=d, colour=..level..)) + geom_contour(breaks=c(-0.0001,seq(-0.01,-0.1,-0.01))) +
+  ylab(expression(rho)) + xlab(expression(sigma[t]^2)) +
+  theme_minimal()
 
 sum(rob$v - opt$v)
 ```
 
-In an external pilot, if we want to test on an sd what kind of seperation in hypotheses can we get?
+## Example - survival
+
+```{r}
+# see chapter 9, D.Collet Modelling survival data in medical research
+s_bar <- function(x, med1, med2)
+{
+  # Assuming exponential models with medians med1 and med2,
+  # so S(x) = exp(-ln(2)x/med)
+  (exp( -(log(2)/med1)*x ) + exp( -(log(2)/med2)*x ))/2
+}
+  
+get_pow <- function(x, med1)
+{
+  # med1 - median survival control
+  # x - (accrual time period, total trial time)
+  # a - accrual time period
+  # f - follow-up time period
+  a <- x[[1]]; f <- max(x[[2]] - x[[1]], 0)
+  dif <- 2
+  med2 <- med1 + dif
+  m <- 10.3 # monthly accrual rate
+  theta <- log(med1/med2) # log harzard ratio
+  
+  # Expected sample size
+  n <- m*a
+  # Probability of an event
+  prob_d <- 1 - (s_bar(f, med1, med2) + 4*s_bar(0.5*a + f, med1, med2) + s_bar(a + f, med1, med2))/6
+  # Expected number of events
+  d <- n*prob_d
+  # Power
+  pnorm( -theta*sqrt(d)/2 - qnorm(0.975) )
+}
+
+get_pow(c(23,48), 4.5)
+lambda <- grad(get_pow, c(23,48), med1=4.5)
+```
+
+Finding the optimal design (i.e. that which maximises the value function) for any given value of the nuisance parameter:
 
 ```{r}
 
+get_value <- function(x, med1, lambda)
+{
+  #if(x[1] < 1 | x[1] > 100 | x[2] < 1 | x[2] > 100) return(100000)
+  pow <- get_pow(x, med1)
+  
+  -(pow - sum(lambda*x))
+}
+
+get_design <- function(med1)
+{
+  o <- optim(c(25,50), get_value, med1=med1, lambda=lambda,
+              lower = c(0,0), upper = c(100,100), method="L-BFGS-B")
+  return(c(o$par, -o$value))
+} 
+
+df <- data.frame(med1=seq(2, 8, 0.05))
+df <- cbind(df, t(sapply(df$med1, get_design)))
+names(df)[2:4] <- c("a", "t", "v")
+
+df2 <- data.frame(med1=df$med1)
+fixed <- c(21, 47)
+df2$a <- fixed[1]; df2$t <- fixed[2]
+df2$v <- -sapply(df2$med1, function(x) get_value(fixed, x, lambda))
+df2$d <- df2$v - df$v
+
+# Optimal designs
+ggplot(df, aes(a, t-a, colour=med1)) + geom_point() +
+  xlab("Accrual") + ylab("Follow-up") +
+  theme_minimal()
+
+# Optimal and fixed design values
+ggplot(df2, aes(med1)) + geom_line(aes(y=v)) + geom_line(aes(y=-d), colour="blue") +
+  geom_line(data=df, aes(y=v), colour="red") + 
+  xlab("Median survival time") + ylab("Value") +
+  theme_minimal()
 ```
+
+The initial choice of design appears to generally be quite robust, and a visual inspection of the above plot might be enough to confirm its choice. But more generally, what metrics could we use to find the best fixed design? One obvious solution is to use a distribution on the nuisance parameter to give an expected value and maximise that, but we want to avoid any half Bayesian methods and stick with the frequentist paradigm here. Two possible approaches:
+
+- Define a range of interest on the nuisance parameter and then choose the minimax design, i.e. that with the smallest maximum difference in value between fixed and optimal designs;
+- Define a maximum tollerated difference in value between fixed and optimal designs, and choose that which gives the largest area of nuisance parameter space within this margin.
+
+The first will be highly sensitive to the choice of range which we want to avoid, so let's examine the second approach.
+
+```{r}
+get_diff <- function(med1, fixed, lambda)
+{
+  opt_v <- get_design(med1)[3]
+  get_value(fixed, med1, lambda) - opt_v
+}
+
+uniroot(get_diff, c(2,8), fixed=c(15, 40), lambda=lambda)
+
+coverage <- function(fixed, df, diff, lambda)
+{
+  df2 <- data.frame(med1=df$med1)
+  df2$a <- fixed[1]; df2$t <- fixed[2]
+  df2$v <- -sapply(df2$med1, function(x) get_value(fixed, x, lambda))
+  df2$d <- df2$v - df$v
+  -sum(-df2$d <= diff)
+}
+
+df <- data.frame(med1=seq(2, 8, 0.01))
+df <- cbind(df, t(sapply(df$med1, get_design)))
+names(df)[2:4] <- c("a", "t", "v")
+
+diff <- 0.01
+opt <- psoptim(c(35,50), coverage, df=df, diff=diff, lambda=lambda,
+              lower = c(0,0), upper = c(100,100))#, method="L-BFGS-B")
+```
+
+
+
+## Discussion
 
 Is power the right metric for value? Could consider precision, e.g. expected width of a confidence interval, instead.  
 
@@ -387,46 +447,6 @@ ggplot(df_SSR, aes(sd, pq50)) + geom_line(colour="darkred") +
 ```
 
 What is the problem with SSR? The key point is that it entails a strict following of the constrained approach to trial design, in contrast to the initial design where flexibility is implictly allowed, generally done, but always hidden. A better SSR apprach would be to re-estimate the parameter and then do the SS calculation as we do in practice, including allowing us to change the effect size we want to detect to avoid admitting we have low power. 
-
-# Uncertianty in the effect
-
-```{r}
-get_power <- function(k, sd, d)
-{
-  if(k <= 1){
-    return(0)
-  } else {
-    # Use the large-sample normal approximation
-    p <- 1-pnorm(qnorm(0.975)*sqrt((2*sd^2)/k), d, sqrt((2*sd^2)/k))
-    return(p)
-  }
-}
-
-get_power(57, 1.9, 1)
-grad(get_power, 57, sd=1.9, d=1)
-lambda <- grad(get_power, 57, sd=1.9, d=1)#0.85)
-
-get_value <- function(k, sd, d)
-{
-  pow <- get_power(k, sd=sd, d=d)
-  return(-(pow - lambda*k))
-}
-
-get_k <- function(sd, d)
-{
-  o <- optim(1, get_value, lower=c(0), upper=c(200), sd=sd, d=d, method="Brent")
-  return(c(o$par, o$value))
-}
-
-df <- data.frame(sd=seq(0.1,4,0.05))
-df <- cbind(df, t(sapply(df$sd, get_k, d=2)))
-names(df)[2:3] <- c("k", "v")
-
-ggplot(df, aes(sd, k)) + geom_line()
-max(df$k)
-
-```
-Basic issue here is that as the effect size gets larger, our willingness to pay (in terms of sample size) will increase. When keeping $\sigma$ constant this can still mean a similar or lower "optimal" sample size, but for larger $\sigma$ this will lead to larger sample sizes, increasing indefinitely as both $\mu$ and $\sigma$ increase. So, we lose the nice property of a natural highest sample size and are back to picking arbitrary maximums for the parameters.
 
 # Controlling type I error
 
