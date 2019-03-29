@@ -11,6 +11,13 @@ require(numDeriv)
 require(ggplot2)
 ```
 
+<<<<<<< HEAD
+=======
+
+
+
+
+>>>>>>> 5291f30777baca1bc6c2ef24a40fb86fafec7ee7
 ## Introduction
 
 ## Running example
