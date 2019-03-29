@@ -10,17 +10,7 @@ knitr::opts_chunk$set(echo = TRUE)
 require(numDeriv)
 ```
 
-## YSS abstract
 
-The price of power: Robust, value-based clinical trial design when nuisance parameters are unknown
-
-Background: 
-
-Methods:
-
-Results: 
-
-Conclusion:
 
 
 
