@@ -19,7 +19,7 @@
 
 \runninghead{Wilson et al.}
 
-\title{Robust, value-based trial design when nuisance parameters are unknown}
+\title{Robust, value-based sample size determination for clinical trials when nuisance parameters are unknown}
 
 \author{Duncan T. Wilson\affilnum{1}}%,
 %Rebecca E. A. Walwyn\affilnum{1}, 
@@ -36,39 +36,16 @@
 \begin{abstract}
 % 200 word limit (250 for YSM)
 
-Background: 
+\textbf{Background:} The conventional approach to determining the sample size of a clinical trial is to choose the smallest value such that the power of the trial is above some nominal threshold, often 0.8 or 0.9. This sample size can be highly sensitive to nuisance parameters, such as the variance of a continuous primary outcome. Sample size re-estimation methods allow these parameters to be estimated at an interim analysis to allow the sample size to be adjusted accordingly. However, these methods do not formally account for the associated costs of increased sampling, and as a result can lead to incoherent decisions.
 
-Methods:
+\textbf{Methods:} We present an alternative model for sample size determination which explicitly balances costs and benefits by introducing a value function to be maximised. We explore the implications of the model and argue it provides a better representation of sample size determination in practice than the conventional approach. We show the method is significantly less sensitive than the conventional approach to nuisance parameters, to the point where a fixed design with no interim sample size adjustment can be near-optimal for large regions of the nuisance parameter space. We propose a criterion for choosing an optimal fixed sample size, considering the range of nuisance parameter values for which the value of the fixed design is within a tolerable distance of the value of the best possible design.
 
-Results: 
+\textbf{Results:} We illustrate our approach by applying it to two trial design problems: choosing the accrual and follow-up times for a parallel group trial comparing overall survival, where the median survival time in the control arm is unknown; and choosing the number of clusters in a cluster randomised trial with unknown variance components at both the individual and cluster levels.
 
-Conclusion:
-
-Motivating problem is uncertainty in nuisance parameters, particularly those which are hard to get interim estimates of.
-
-SSD / SSR with the conventional contrained formulation hgighly sentive to the estimates, so large variability in the
-final n (and when estimates are poor, large variability in the final power too). Can lead to cases where a very large
-sample is requested at the interim. Need to decide how large a sample is tollerated, but no guidance on how to do so.
-Lack of consistency, in the sense that we can "pay" vastly different costs (sample sizes) to obtain the same value (power).
-
-We suggest an alternative fomulation of the SSD / SSR problem, based on maximising value rather than minimising cost s.t. constrained power,
-where value is a weighted sum of sample size and power.
-
-We argue that this is a better model of SSD, both in a normative and descriptive sense (including the "sample size samba" of MCID adjustment), 
-compared to the constrained optimisation model.
-
-We show that under this model, in many problems there will be little justification for SSR - the initial fixed design will not be very sub-optimal.
-
-The implication is that trial designs robust to variation in nuisance parameters can be obtained without the practical and logistical 
-trouble associated with interim analyses.
-
-We illustrate the approach by applying it to two SSD problems: choosing the number of clusters in a cluster randomised parellel group trial 
-with uncertain variance components at both the individual and cluster levels; and choosing the accrual and follow-up
-time periods in a parellel group trial with an overall survivial endpoint and uncertain event rate in the control arm.
-
+\textbf{Conclusion:} Accounting for the costs of sampling when determining the sample size of a clinical trial,  we can find simple, fixed sample size designs which are highly robust to nuisance parameter uncertainty.
 \end{abstract}
 
-\keywords{Clinical trials, simulation, sample size, power}
+\keywords{Clinical trials, sample size, power, interim analysis}
 
 \maketitle
 

@@ -11,6 +11,8 @@ require(numDeriv)
 require(ggplot2)
 ```
 
+# Paper appendix
+
 ## Introduction
 
 ## Running example
@@ -82,9 +84,6 @@ ggplot(df2, aes(n, pow)) + geom_contour(aes(z=v, colour=..level..)) +
 cbind(rbind(opt3, opt, opt4), sd=c(0.7, 1, 1.3))
 ```
 
-
-### Unknown nuisance parameters
-
 In the above we have proposed a _normative_ model for choosing the sample size of a trial, and argured that it may also be a _descriptive_ model of what happens in practice, in which case there would be no benefit of using it as it will lead to the same decisions. However, the potential implications of our model are hinted at in the above example - when the true power function is not known, as will be the case whenever we are uncertain about a nuisance parameter value, using a value function to make decisions provides a unified approach which will ensure consistency. 
 
 Contrast with a common method for dealing with nuisance parameter uncertainty, sample size re-estimation (SSR). Following on from the example above, suppose we guess that $\sigma = 1$ and then choose $n = 17$ to give 80\% power. Under the SSR approach, if we learn from an interim analysis that $\sigma = 1.3$ then we should inflate our sample size to $n = 27$ to maintain the same power. Under our value model, this behaviour is not internally coherent. We are now saying that an increase in power of `r power.t.test(n=27, delta=1, sd=1.3)$power - power.t.test(n=26, delta=1, sd=1.3)$power` justifies an increase in sample size from 26 to 27; but when we did our original calculations, we felt that the increase of `r power.t.test(n=18, delta=1, sd=1)$power - power.t.test(n=17, delta=1, sd=1)$power` obtained by moving from 17 to 18 was _not_ justified.
@@ -115,14 +114,12 @@ ggplot(df, aes(n, pow, colour=sig, group=as.factor(sig))) + geom_line() +
 opt[which.max(opt$n),]
 ```
 
-This suggests a strategy for designing trials which are robust to the uncertainty in a nuisance parameter estimate: choose the largest locally optiamal $n$ over the plauasible parameter values. In the example above we had an initial guess of $\sigma = 1$ which led to a locally optimal $n = 17$, but if we inflate this to $n = 19$ we know that whatever the true value of $\sigma$, the trial will never too small. That is, if the true value of $\sigma$ were to be revealed, we would never want to increase the sample size. 
-
-Is this consistent with out value based formulation? It suggests that we have a preference for desigs which are too large, conmpared to one with the same value but too small.
+Clearly, the optimal sample size under our formulation is much less sensitive to the nuisance parameter. Can we choose a fixed sample size design, and thus avoid the logistic and practical difficulties associated with interim analyses? To start, we can look at the original design choice based on the best estimate of the nuisance parameter. We can calculate the value of that design accross a range of parameter values, and contrast with the value of the optimal design:
 
 ```{r}
 lambda <- grad(function(n) power.t.test(n=n, delta=0.3, sd=1)$power, 235)
 
-f <- function(n, sig)
+get_value <- function(n, sig, lambda)
 {
   pow <- power.t.test(n=n, delta=0.3, sd=sig)$power
   -(pow - lambda*n)
@@ -130,36 +127,41 @@ f <- function(n, sig)
 
 opt <- data.frame(n= 22, sig=seq(0.3,3,0.05))
 
-opt$n <- sapply(opt$sig, function(x) optim(10, f, method="Brent", lower=2, upper=500, sig=x)$par)
-opt$v <- apply(opt, 1, function(x) f(x[1],x[2]))
+opt$n <- sapply(opt$sig, function(x) optim(10, get_value, method="Brent", lower=2, upper=500, sig=x)$par)
+opt$v <- apply(opt, 1, function(x) get_value(x[1],x[2]))
 
-rob <- data.frame(n= 345, sig=seq(0.3,3,0.05))
-rob$v <- apply(rob, 1, function(x) f(x[1], x[2]))
+rob <- data.frame(n= 235, sig=seq(0.3,3,0.05))
+rob$v <- apply(rob, 1, function(x) get_value(x[1], x[2]))
 
-sum(rob$v - opt$v)
-
-opt$t <- "opt"
-rob$t <- "rob"
-
-df <- rbind(opt, rob)
-
-ggplot(df, aes(sig, v, colour=n, shape=t)) + geom_point()
-
-interim <- 10
-tru_sig <- 2
-sig_est <- rchisq(1000, interim-1)*tru_sig/(interim-1)
-n_est <- sapply(sig_est, function(x) optim(10, f, method="Brent", lower=2, upper=50, sig=x)$par)
-ssr <- data.frame(n=n_est, sig=rep(tru_sig, 1000))
-ssr$v <- apply(ssr, 1, function(x) f(x[1], x[2]))
-
-df[df$sig==tru_sig,]
+ggplot(opt, aes(sig, -v)) + geom_line() +
+  geom_line(data=rob, colour="red")
 ```
 
-Rather than looking at the maximum optimal n and considering it to be a robust choice, instead we find that more generally any reasonable choice of n will in general not be far from the optimal n in terms of our value function. For example, if our original design was for n=22 to give 90% power at sd=1, keeping that n means that for sd in the range 0.75 to 2.3 (approx) the difference is within 0.05, which recall is in units of power. So we can avoid SSR and be pretty confident that even if the sd is significantly underestimated, we are not losing much. Moreover, when we look at SSR in our framework, it gives very limited benefits (due to the inherent lack of opportunity to improve, noting that the optimal choice is SSR with full precision). Note also that we had previously found that a value function determined by a higher power led to more variability in the optimal n and so a bigger increase to the maximum "robust" choice, whereas here we show that the high power setting can be accomadated easily. 
-
-Changing the scale, asking for 90 power initially for an effect of 0.3 rather than 1, leads to the same differences in values for optimal and fixed designs.
+We find that more generally any reasonable choice of n will in general not be far from the optimal n in terms of our value function. For example, if our original design was for n=22 to give 90% power at sd=1, keeping that n means that for sd in the range 0.75 to 2.3 (approx) the difference is within 0.05, which recall is in units of power. So we can avoid SSR and be pretty confident that even if the sd is significantly underestimated, we are not losing much. Changing the scale, asking for 90 power initially for an effect of 0.3 rather than 1, leads to the same differences in values for optimal and fixed designs.
 
 Plotting the differences in the optimal and fixed values for a range of sds, we see that one rationale for the choice of fixed design is to restrict attention to a specific range of sds and find that which minimises the maximal difference. This is similar to the approach in [@Breukelen2015], although there the design problem is to choose number of clusrees and cluster size given a fixed overall budget; and the value measure they use is just the variance of the estimate. SO our approach is quite different, since we provide a way to decide how much overall budget should be used, and as shown below the use of precision as a value measure is not helpful since it does not plateu. Note that work is extended in [@Breukelen2018] to allow for heterogeneity in the costs and variances in each arm. The minimax approach is, however, going to be very sensitive to the "plausable" range of sds. It might be easier to simply plot the value curves for a range of ns and qualitatively judge them.
+
+An alternative optimality criterion for a fixed design is to define a tollerable deviation from the optimal design's value, and to choose the fixed design which lies within this margin for the largest region of the parameter space. Apply this to the above example:
+
+```{r}
+coverage <- function(fixed, opt, diff, lambda)
+{
+  df <- data.frame(sig = opt$sig)
+  df$n <- fixed
+  df$v <- sapply(df$sig, function(x) get_value(fixed, x, lambda))
+  df$d <- df$v - opt$v
+  -sum(df$d <= diff)
+}
+
+opt <- data.frame(sig=seq(0.3,2,0.01))
+opt$n <- sapply(opt$sig, function(x) optim(10, get_value, method="Brent", lower=2, upper=500, sig=x, lambda=lambda)$par)
+opt$v <- apply(opt, 1, function(x) get_value(x[2],x[1], lambda))
+
+diff <- 0.01
+o <- psoptim(100, coverage, opt=opt, diff=diff, lambda=lambda,
+              lower = 2, upper = 500)
+```
+
 
 Note that for the same lambda, the optimal designs and their values will be constant. As we change the fixed sample size, we change the value of sd for which the fixed design is also the optimal. We see that as this sd value reduces, the fixed value curve becomes more discrepant. In the above example, if we thought an sd of 0.7 was most likely but used the same lambda, we would get a trial of 95% power and n=145. But when we compare a fixed design of n=145 against the optimal the largest difference is around 0.127 - much larger than the 0.05 before. So our approach looks like it won't work well if the plausable sd values correspond with a very high power. In conrast, if lambda is the same but we think the sd is higher at 1.5, the optimal design is n=345 (giving power 75%) and as a fixed design this is very robust around sd=1.5. So broadly speaking, the lambda gives the optimal designs and the maximum sd for which a trial can be considered, and a fixed design approach works better the closer our plausable sd rage is to that maximum (or equivalently, the lower the power of the locally optimal design at the best guess). 
 
@@ -290,14 +292,6 @@ The initial choice of design appears to generally be quite robust, and a visual 
 The first will be highly sensitive to the choice of range which we want to avoid, so let's examine the second approach.
 
 ```{r}
-get_diff <- function(med1, fixed, lambda)
-{
-  opt_v <- get_design(med1)[3]
-  get_value(fixed, med1, lambda) - opt_v
-}
-
-uniroot(get_diff, c(2,8), fixed=c(15, 40), lambda=lambda)
-
 coverage <- function(fixed, df, diff, lambda)
 {
   df2 <- data.frame(med1=df$med1)
@@ -337,6 +331,7 @@ So really, power can be thought of as a value function on precision/information,
 
 Does this hold up? Increasing precision can let us decrease the portion of parameter space wehere decisions will be random. 
 
+# Superceded
 
 ## Application - cluster randomised trials
 
