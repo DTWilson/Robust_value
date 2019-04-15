@@ -49,6 +49,8 @@
 
 \maketitle
 
+
+
 \section{Introduction}\label{sec:intro}
 
 \cite{Norman2012} - Sample size calculations: should the emperor's clothes be off the peg or made to measure?
@@ -65,6 +67,11 @@
 
 \cite{DeMartini2010} - Conservative Sample Size Estimation in Nonparametrics
 
+
+
+No real distinction between SSD and SSR, under the ideal case of perfect estimates. Question is just what sample size should be chosen for a given parameter value. We want a system for making that decision that's coherent. The current convention isn't, because it doesn't formally account for costs. It survives because people game the process, but this gaming relies on adjusting the target difference and we can't do that in the SSR setting. So, applying conventional SSR, we get interim decisions that do not cohere with the initial SSD decisions (e.g. deciding the same power is suddenly worth a lot more sampling).
+
+We propose a simple method for accounting for cost and benefit through defining a value function and maximising it. We show how this leads to coherent decision making across nusiance parameter values, and therefore how it provides a basis for SSR. We then show that under our formulation fixed designs can be highly robust to nuisance parameter values and as such SSR can be avoided altogether, saving logisitcal headaches, money, keeping analyses simple (no multiple testing adjustments), and in many cases making the trial feasible (since the parameter can't be estimated with mch precision, e.g. hazard rate or ICC). We go on to suggest criteria for finding the best fixed design. We illustrate the general approach by applying to two examples.
 
 
 \section{Value-based trial design}

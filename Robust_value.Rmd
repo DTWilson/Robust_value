@@ -127,11 +127,11 @@ get_value <- function(n, sig, lambda)
 
 opt <- data.frame(n= 22, sig=seq(0.3,3,0.05))
 
-opt$n <- sapply(opt$sig, function(x) optim(10, get_value, method="Brent", lower=2, upper=500, sig=x)$par)
-opt$v <- apply(opt, 1, function(x) get_value(x[1],x[2]))
+opt$n <- sapply(opt$sig, function(x) optim(10, get_value, method="Brent", lower=2, upper=500, sig=x, lambda=lambda)$par)
+opt$v <- apply(opt, 1, function(x) get_value(x[1],x[2], lambda))
 
 rob <- data.frame(n= 235, sig=seq(0.3,3,0.05))
-rob$v <- apply(rob, 1, function(x) get_value(x[1], x[2]))
+rob$v <- apply(rob, 1, function(x) get_value(x[1], x[2], lambda))
 
 ggplot(opt, aes(sig, -v)) + geom_line() +
   geom_line(data=rob, colour="red")
@@ -157,10 +157,12 @@ opt <- data.frame(sig=seq(0.3,2,0.01))
 opt$n <- sapply(opt$sig, function(x) optim(10, get_value, method="Brent", lower=2, upper=500, sig=x, lambda=lambda)$par)
 opt$v <- apply(opt, 1, function(x) get_value(x[2],x[1], lambda))
 
-diff <- 0.01
-o <- psoptim(100, coverage, opt=opt, diff=diff, lambda=lambda,
+diff <- 0.02
+o <- psoptim(200, coverage, opt=opt, diff=diff, lambda=lambda,
               lower = 2, upper = 500)
 ```
+
+A key question now is - how sensitive is this optimal fixed design to the choice of the value parameter lambda? Given that there may be some variability in its choice, both within and between decision makers, robustness in this regard would make the methodology quite attractive.
 
 
 Note that for the same lambda, the optimal designs and their values will be constant. As we change the fixed sample size, we change the value of sd for which the fixed design is also the optimal. We see that as this sd value reduces, the fixed value curve becomes more discrepant. In the above example, if we thought an sd of 0.7 was most likely but used the same lambda, we would get a trial of 95% power and n=145. But when we compare a fixed design of n=145 against the optimal the largest difference is around 0.127 - much larger than the 0.05 before. So our approach looks like it won't work well if the plausable sd values correspond with a very high power. In conrast, if lambda is the same but we think the sd is higher at 1.5, the optimal design is n=345 (giving power 75%) and as a fixed design this is very robust around sd=1.5. So broadly speaking, the lambda gives the optimal designs and the maximum sd for which a trial can be considered, and a fixed design approach works better the closer our plausable sd rage is to that maximum (or equivalently, the lower the power of the locally optimal design at the best guess). 
@@ -246,7 +248,6 @@ lambda <- grad(get_pow, c(23,48), med1=4.5)
 Finding the optimal design (i.e. that which maximises the value function) for any given value of the nuisance parameter:
 
 ```{r}
-
 get_value <- function(x, med1, lambda)
 {
   #if(x[1] < 1 | x[1] > 100 | x[2] < 1 | x[2] > 100) return(100000)
