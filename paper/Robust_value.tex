@@ -53,19 +53,21 @@
 
 \section{Introduction}\label{sec:intro}
 
-\cite{Norman2012} - Sample size calculations: should the emperor's clothes be off the peg or made to measure?
+Prepare and motivate.
 
-\cite{Edwards1997} - Why "underpowered" trials are not necessarily unethical
+Need to know:
+- Standard SSD procedure (target difference, nuisance parameters, constrained optimisation)
+- Implication of ignoring costs, especially as nuisance params vary
+- The sample size samba, and how this accounts for cost informally
+- Inability to do the samba in an SSR setting
 
-\cite{Girling2007} - Sample-size calculations for trials that inform individual treatment decisions: a 'true-choice' approach
+Motivation:
+- Conventional SSR leads to incoherent decisions, specifically to trials which are very inefficient in the sense that they are too large for the benefit they bring
+- Need a new approach for SSD which can be appied in SSR coherently and transparently and which leads to more efficient trials
 
-\cite{Claxton1999} - The irrelevance of inference: a decision-making approach to the stochastic evaluation of health care technologies
 
-\cite{Grayling2018} - Blinded and unblinded sample size reestimation procedures for stepped-wedge cluster randomized trial
 
-\cite{Altman1980} - Statistics And Ethics In Medical Research: III How Large A Sample?
 
-\cite{DeMartini2010} - Conservative Sample Size Estimation in Nonparametrics
 
 
 
@@ -74,11 +76,15 @@ No real distinction between SSD and SSR, under the ideal case of perfect estimat
 We propose a simple method for accounting for cost and benefit through defining a value function and maximising it. We show how this leads to coherent decision making across nusiance parameter values, and therefore how it provides a basis for SSR. We then show that under our formulation fixed designs can be highly robust to nuisance parameter values and as such SSR can be avoided altogether, saving logisitcal headaches, money, keeping analyses simple (no multiple testing adjustments), and in many cases making the trial feasible (since the parameter can't be estimated with mch precision, e.g. hazard rate or ICC). We go on to suggest criteria for finding the best fixed design. We illustrate the general approach by applying to two examples.
 
 
-\section{Value-based trial design}
+\section{Body}
 
-Running example throughout - two sample t-test of means with outcome sd being the nuisance parameter.
+First, introduce some notation and describe conventional SSD and SSR more formally. We will consider a specific example, of a two-sample t-test with size $\alpha$ of a normally distributed outcome, with a common sd $\sigma$, balanced sample size $n$, and a difference in means to be detected of size $\mu$. We would like to minimise $n$ subject to the constraint $\beta(n, \mu, \sigma, \alpha) \leq \beta^*$, where $\beta(n | \mu, \sigma, \alpha)$ is the type II error rate for the trial with $n$, and $\beta^*$ is the constraint level, typically 0.1 or 0.2.
 
-The dominant paradigm in clinical trial sample size determination is based on power, the probability of rejecting a null hypothesis conditional on an alternative hypothesis being true. Assuming that the type I error rate is fixed, the two objectives of minimising sample size and maximising power are in conflict. The conventional solution to resolving this is to declare some threshold level of power which must be met, and then find the smallest sample size that satisfies this criteria. As has been previously discussed by others, a major flaw of this approach is that the cost associated with sampling is ignored.
+Generally, $\sigma$ is not known and is replaced by an estimate $\hat{\sigma}$, which may be from external data, internal pilot data, or expert judgement. The difference to be detected, $\mu$, should be the MCID.
+
+We assume that all other things being equal, a higher powered trial is preferred to a lower powered trial; similarly, a trial of small sample size is preferred to a larger one. Under these assumptions, the constrained optimisation approach for choosing $n$ under different estimates $\hat{\sigma}$ is incoherent.
+
+\subsection{Value-based design}
 
 An alternative approach to SSD is to plot the power of the trial as a function of its sample size and to choose the point deemed to best balance cost (i.e. sample size) and benefit (i.e. power). To help describe this decision-making process formally, we can introduce a \emph{value} function $v(n, \beta): \mathbb{N} \times [0,1] \rightarrow \mathbb{R}$ which describes our preferences $\succ$ between all possible pairs of sample size and type II error. Specifically, $v$ is such that
 $$
@@ -127,6 +133,22 @@ Normative model is also descriptive, justifying the `sample size samba'.
 \subsection{Survival}
 
 \section{Discussion}
+
+Ethics of underpowered and overpowered studies; the threshold myth.
+
+\cite{Norman2012} - Sample size calculations: should the emperor's clothes be off the peg or made to measure?
+
+\cite{Edwards1997} - Why "underpowered" trials are not necessarily unethical
+
+\cite{Girling2007} - Sample-size calculations for trials that inform individual treatment decisions: a 'true-choice' approach
+
+\cite{Claxton1999} - The irrelevance of inference: a decision-making approach to the stochastic evaluation of health care technologies
+
+\cite{Grayling2018} - Blinded and unblinded sample size reestimation procedures for stepped-wedge cluster randomized trial
+
+\cite{Altman1980} - Statistics And Ethics In Medical Research: III How Large A Sample?
+
+\cite{DeMartini2010} - Conservative Sample Size Estimation in Nonparametrics
 
 \begin{acks}
 Acknowledgements.

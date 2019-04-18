@@ -3,12 +3,39 @@ title: "Robust, value-based trial design when nuisance parameters are unknown"
 author: "D. T. Wilson"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output: html_document
+runtime: shiny
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 require(numDeriv)
 require(ggplot2)
+require(shiny)
+require(pso)
+require(viridis)
+```
+
+```{r echo = FALSE}
+selectInput("colors", "Choose a color palette", 
+  choices = c("viridis", "magma", "inferno", "plasma", "heat",
+  "terrain", "topographic", "cyan/magenta", "rainbow"))
+
+colorPalette <- reactive({
+  switch(input$colors, 
+         "viridis" = viridis(200),
+         "magma" = viridis(200, option = "A"),
+         "inferno" = viridis(200, option = "B"),
+         "plasma" = viridis(200, option = "C"),
+         "heat" = heat.colors(200),
+         "terrain" = terrain.colors(200),
+         "topographic" = topo.colors(200),
+         "cyan/magenta" = cm.colors(200),
+         "rainbow" = rainbow(200))
+})
+
+renderPlot({
+  image(volcano, col = colorPalette())
+})
 ```
 
 # Paper appendix
@@ -143,7 +170,7 @@ Plotting the differences in the optimal and fixed values for a range of sds, we 
 
 An alternative optimality criterion for a fixed design is to define a tollerable deviation from the optimal design's value, and to choose the fixed design which lies within this margin for the largest region of the parameter space. Apply this to the above example:
 
-```{r}
+```{r, eval=F}
 coverage <- function(fixed, opt, diff, lambda)
 {
   df <- data.frame(sig = opt$sig)
@@ -292,7 +319,7 @@ The initial choice of design appears to generally be quite robust, and a visual 
 
 The first will be highly sensitive to the choice of range which we want to avoid, so let's examine the second approach.
 
-```{r}
+```{r, eval=F}
 coverage <- function(fixed, df, diff, lambda)
 {
   df2 <- data.frame(med1=df$med1)
@@ -342,7 +369,7 @@ Consider the problem of choosing the sample size of a cluater randomised trial c
 
 The alternative approach to dealing with uncertain nuisance parameters within a frequentist framework is SSR, so let's do a comparison of the two approaches. We will use the same example in a paper on SSR for cluster trials, where uncertainty is in the variance compoentns and in the variability of cluster size as in our application above.
 
-```{r}
+```{r, eval=F}
 library(numDeriv)
 
 get_power <- function(k, sd)
@@ -398,7 +425,7 @@ ggplot(df, aes(sd, k)) + geom_line() +
 
 We see that the usual SS method agrees with our method when the initial guess of the nuisance parameter is correct. Now, take the largest sample size required by our method as our robust choice, and examine the 
 
-```{r}
+```{r, eval=F}
 # Robust sample size
 k_rob <- max(df$k)
 df_rob <- data.frame(sd = df$sd)
@@ -448,7 +475,7 @@ What is the problem with SSR? The key point is that it entails a strict followin
 
 In the bove we have fixed $\alpha$ at some standard choice. Consider varying it as a design parameter.
 
-```{r}
+```{r, eval=F}
 get_power <- function(x, sd)
 {
   k <- x[1]; alpha <- x[2]; d <- 0.3
@@ -534,7 +561,7 @@ Key point is that for a larger $\sigma$ the optimal design will increase the typ
 
 For our cluster randomised trial we had a single design variable, the sample size. Here we consider a problem with two design variables, the sample size and the follow-up time for a trial comparing a time-to-event outcome. We start as before, with a power function and a value function whose parameters are deterimined from the choice of local design. 
 
-```{r}
+```{r, eval=F}
 # see chapter 9, D.Collet Modelling survival data in medical research
 s_bar <- function(x, med1, med2)
 {
@@ -572,7 +599,7 @@ w <- grad(get_beta, c(23,48), med1=4.5)
 
 Finding the optimal design (i.e. that which maximises the value function) for any given value of the nuisance parameter:
 
-```{r}
+```{r, eval=F}
 
 get_value <- function(x, med1)
 {
@@ -597,7 +624,7 @@ ggplot(df, aes(a, t, colour=med1)) + geom_point()
 
 Now, take the total study time $t$ to be fixed so we are down to a single design variable, the accrual time $a$. Taking the same approach as above, what value of $a$ is robust to uncertainty in the nuisance parameter (the median time in the control group)?
 
-```{r}
+```{r, eval=F}
 # Fixed t, total time for study (i.e. accrual time + follow-up time)
 obj_func_fixed_t <- function(a, t, med1)
 {
@@ -627,7 +654,7 @@ opt_fixed_t(36)
 
 Similarly, we can do the same but taking the accrual time as fixed and looking for the maximum total study time we would want if the nuisance parameter were known.
 
-```{r}
+```{r, eval=F}
 # Fixed a, accrual time
 obj_func_fixed_a <- function(t, a, med1)
 {
@@ -656,7 +683,7 @@ opt_fixed_a(24)
 
 So, for any value of $a$ we can find the value of $t$ that is robust to the nuisance parameter, and vice versa:
 
-```{r}
+```{r, eval=F}
 ts <- 3:75
 t_o <- sapply(ts, opt_fixed_t)
 
@@ -670,7 +697,7 @@ ggplot() + geom_point(data=df, aes(t, t_o, colour="t_fix")) + geom_point(data=df
 
 We see that the functions cross at an equilibrium point $(a^*, t^*)$, which can be found using the following algorithm:
 
-```{r}
+```{r, eval=F}
 t1 <- runif(1,3,100); a1 <- runif(1,3,100)
 converged <- FALSE
 iter <- 1
@@ -721,7 +748,7 @@ ggplot(df, aes(a,t,colour=v<0)) + geom_point()
 Connecting with our work on testing feasibility in pilots, where we assume a fixed main trial sample siZe and define null and alternative hypothees in terms of the power that will be obtained. Will be essentially the same when we are focussing on nuisance parameters like a common variance rather than feasibility parameters. The method as given above gives us a fixed main trial sample size, which will be conservative - it will never be optimal to increase it, no matter what the true value of the parameter is. But is some cases the optimal sample size will be zero, so we would have run a futile trial. Can we use the testing idea to reduce the chance of this happeneing? How will it compare with the alternative SSR approach?
 
 Copied from above:
-```{r}
+```{r, eval=F}
 lambda <- 0.005
 df <- expand.grid(n=2:500, sig=seq(1,5,0.1))
 df$pow <- apply(df, 1, function(x) power.t.test(n=x[1], delta=1, sd=x[2])$power)
@@ -748,14 +775,14 @@ df0 <- opt
 
 
 So we have a fixed main trial sample size of 88. What does power look like for our range of variances?
-```{r}
+```{r, eval=F}
 df2 <- data.frame(sig=seq(1,4,0.1))
 df2$pow <- sapply(df2$sig, function(x) power.t.test(n=88, delta=1, sd=x)$power)
 ggplot(df2, aes(sig, pow)) + geom_point()
 ```
 At some point the power obtained won't justify the expense. Say that 60\% is our threshold. If the true sd is around 2.98, we will get 60\% power and will be indifferent about running vs not running the trial. Given the value function, this translates into a set-up cost of 32 patients or 0.005*32 = 0.16 value units (we have included this in the above code). We can see the value function crossing 0 at this point:
 
-```{r}
+```{r, eval=F}
 ggplot(df0, aes(sig, n)) + geom_line() + 
   geom_line(data=df0, aes(sig, 100*value), colour="darkgreen") +
   geom_vline(xintercept = 2.98, linetype =2)
@@ -763,7 +790,7 @@ ggplot(df0, aes(sig, n)) + geom_line() +
 
 So, if the true $\sigma$ is > 2.98 our robust trial will actually be worse than no trial at all. If we want to test feasibility in a pilot, we could ask that we have 50\% power for a $\sigma = 2.98$ so that our indfiference at this point is reflected. Then we need to decide how large the pilot should be. We can take the same approach as for the main trial, by extending the value function, finding the optimal pilot sample size for a range of $\sigma$, and then being conservative by choosing the largest of these. To extend the value function we need to now think of the overall power of the two-trial system, and now consider the expected sample size (where the expectation is over the pilot data / test result):
 
-```{r}
+```{r, eval=F}
 get_value <- function(n_p, sig)
 {
   alpha <- 0.5; n <- 88
@@ -781,7 +808,7 @@ ggplot(df3, aes(sig, n)) + geom_line()
 ```
 In this example we see that optimal pilot size drops to 0 as we get to the point of equivalence. There are two peaks, one on either side of this point. As we move to the extremes, the optimal size reduces, as we would expect - it becomes easier to make the correct decision with only a few data. The maximum here is $n_p \approx 12$. What value would we obtain if we use that?
 
-```{r}
+```{r, eval=F}
 df4 <- expand.grid(sig=seq(1,6,0.1))
 df4 <- cbind(df4, t(sapply(df4$sig, function(x, n_p) get_value(n_p, x), n_p = max(df3$n))))
 names(df4)[2:3] <- c("v", "v2")
@@ -794,7 +821,7 @@ The differnece in value between our "robust" pilot and not running one at all (d
 
 We have in the above fixed the main $n$ and optimised over $n_p$. What happens if we do the reverse?
 
-```{r}
+```{r, eval=F}
 get_value2 <- function(n, sig)
 {
   alpha <- 0.5; n_p <- 12
