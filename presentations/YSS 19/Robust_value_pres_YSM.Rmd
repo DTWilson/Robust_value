@@ -8,6 +8,7 @@ output: ioslides_presentation
 ```{r setup, include=FALSE}
 require(ggplot2)
 require(plotly)
+require(numDeriv)
 knitr::opts_chunk$set(echo = FALSE)
 ```
 
@@ -137,6 +138,80 @@ Plot value of best fixed design.
 =========
 
 ```{r}
+# see chapter 9, D.Collet Modelling survival data in medical research
+s_bar <- function(x, med1, med2)
+{
+  # Assuming exponential models with medians med1 and med2,
+  # so S(x) = exp(-ln(2)x/med)
+  (exp( -(log(2)/med1)*x ) + exp( -(log(2)/med2)*x ))/2
+}
+  
+get_pow <- function(x, med1)
+{
+  # med1 - median survival control
+  # x - (accrual time period, total trial time)
+  # a - accrual time period
+  # f - follow-up time period
+  a <- x[[1]]; f <- max(x[[2]] - x[[1]], 0)
+  dif <- 2
+  med2 <- med1 + dif
+  m <- 10.3 # monthly accrual rate
+  theta <- log(med1/med2) # log harzard ratio
+  
+  # Expected sample size
+  n <- m*a
+  # Probability of an event
+  prob_d <- 1 - (s_bar(f, med1, med2) + 4*s_bar(0.5*a + f, med1, med2) + s_bar(a + f, med1, med2))/6
+  # Expected number of events
+  d <- n*prob_d
+  # Power
+  pnorm( -theta*sqrt(d)/2 - qnorm(0.975) )
+}
+
+get_pow(c(23,48), 4.5)
+lambda <- grad(get_pow, c(23,48), med1=4.5)
+```
+
+
+```{r}
+get_value <- function(x, med1, lambda)
+{
+  pow <- get_pow(x, med1)
+  -(pow - sum(lambda*x))
+}
+
+get_design <- function(med1)
+{
+  o <- optim(c(25,50), get_value, med1=med1, lambda=lambda,
+              lower = c(0,0), upper = c(100,100), method="L-BFGS-B")
+  return(c(o$par, -o$value))
+} 
+
+df <- data.frame(med1=seq(2, 8, 0.01))
+df <- cbind(df, t(sapply(df$med1, get_design)))
+names(df)[2:4] <- c("a", "t", "v")
+
+df2 <- data.frame(med1=df$med1)
+fixed <- c(21, 47)
+df2$a <- fixed[1]; df2$t <- fixed[2]
+df2$v <- -sapply(df2$med1, function(x) get_value(fixed, x, lambda))
+df2$d <- df2$v - df$v
+
+# Optimal designs
+ggplot(df, aes(a, t-a, colour=med1)) + geom_point() +
+  xlab("Accrual") + ylab("Follow-up") +
+  theme_minimal()
+
+# Optimal and fixed design values
+p <- ggplot(df2, aes(med1)) + geom_line(aes(y=v)) + geom_line(aes(y=-d), colour="blue") +
+  geom_line(data=df, aes(y=v), colour="red") + 
+  xlab("Median survival time") + ylab("Value") +
+  theme_minimal()
+
+ggplotly(p)
+```
+
+```{r, eval=F}
 df <- data.frame(x=seq(0,1,0.01))
 df$y1 <- 2*df$x + 0.2
 df$y2 <- 2.1*df$x + 0.25
