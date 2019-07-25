@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.19 (MiKTeX 2.9.6840 64-bit) (preloaded format=pdflatex 2019.3.21)  18 APR 2019 09:31
+This is pdfTeX, Version 3.14159265-2.6-1.40.19 (MiKTeX 2.9.6840 64-bit) (preloaded format=pdflatex 2019.3.21)  26 APR 2019 09:22
 entering extended mode
 **./Robust_value.tex
 (Robust_value.tex
@@ -402,89 +402,93 @@ LaTeX Font Warning: Font shape `OT1/cmss/m/it' in size <7> not available
 ] [2]
 LaTeX Font Warning: Font shape `OT1/cmss/m/it' in size <12> not available
 (Font)              Font shape `OT1/cmss/m/sl' tried instead on input line 87.
-<./figures/ex1_tangent.pdf, id=17, 397.485pt x 255.95625pt>
-File: ./figures/ex1_tangent.pdf Graphic file (type pdf)
-<use ./figures/ex1_tangent.pdf>
-Package pdftex.def Info: ./figures/ex1_tangent.pdf  used on input line 105.
-(pdftex.def)             Requested size: 317.98842pt x 204.76526pt.
- [3]
-<./figures/ex1_3tangents.pdf, id=29, 397.485pt x 255.95625pt>
+<./figures/ex1_3tangents.pdf, id=17, 397.485pt x 255.95625pt>
 File: ./figures/ex1_3tangents.pdf Graphic file (type pdf)
 <use ./figures/ex1_3tangents.pdf>
-Package pdftex.def Info: ./figures/ex1_3tangents.pdf  used on input line 114.
+Package pdftex.def Info: ./figures/ex1_3tangents.pdf  used on input line 105.
 (pdftex.def)             Requested size: 317.98842pt x 204.76526pt.
-
+ [3] [4 <./figures/ex1_3tangents.pdf>]
+<./figures/cluster_pow.pdf, id=39, 397.485pt x 255.95625pt>
+File: ./figures/cluster_pow.pdf Graphic file (type pdf)
+<use ./figures/cluster_pow.pdf>
+Package pdftex.def Info: ./figures/cluster_pow.pdf  used on input line 152.
+(pdftex.def)             Requested size: 317.98842pt x 204.76526pt.
+<./figures/cluster_disc.pdf, id=40, 397.485pt x 255.95625pt>
+File: ./figures/cluster_disc.pdf Graphic file (type pdf)
+<use ./figures/cluster_disc.pdf>
+Package pdftex.def Info: ./figures/cluster_disc.pdf  used on input line 161.
+(pdftex.def)             Requested size: 317.98842pt x 204.76526pt.
+ [5]
 Underfull \vbox (badness 10000) has occurred while \output is active []
 
- [4 <./figures/ex1_tangent.pdf>]
+ [6 <./figures/cluster_pow.pdf> <./figures/cluster_disc.pdf>]
 
-Package natbib Warning: Citation `Norman2012' on page 5 undefined on input line
- 139.
-
-
-Package natbib Warning: Citation `Edwards1997' on page 5 undefined on input lin
-e 141.
+Package natbib Warning: Citation `Norman2012' on page 7 undefined on input line
+ 172.
 
 
-Package natbib Warning: Citation `Girling2007' on page 5 undefined on input lin
-e 143.
+Package natbib Warning: Citation `Edwards1997' on page 7 undefined on input lin
+e 174.
 
 
-Package natbib Warning: Citation `Claxton1999' on page 5 undefined on input lin
-e 145.
+Package natbib Warning: Citation `Girling2007' on page 7 undefined on input lin
+e 176.
 
 
-Package natbib Warning: Citation `Grayling2018' on page 5 undefined on input li
-ne 147.
+Package natbib Warning: Citation `Claxton1999' on page 7 undefined on input lin
+e 178.
 
 
-Package natbib Warning: Citation `Altman1980' on page 5 undefined on input line
- 149.
+Package natbib Warning: Citation `Grayling2018' on page 7 undefined on input li
+ne 180.
 
 
-Package natbib Warning: Citation `DeMartini2010' on page 5 undefined on input l
-ine 151.
+Package natbib Warning: Citation `Altman1980' on page 7 undefined on input line
+ 182.
 
-[5 <./figures/ex1_3tangents.pdf>]
-No file Robust_value.bbl.
+
+Package natbib Warning: Citation `DeMartini2010' on page 7 undefined on input l
+ine 184.
+
+(Robust_value.bbl)
 
 Package natbib Warning: There were undefined citations.
 
-[6] (Robust_value.aux)
+[7] (Robust_value.aux)
 LaTeX Font Warning: Size substitutions with differences
 (Font)              up to 0.72pt have occurred.
 LaTeX Font Warning: Some font shapes were not available, defaults substituted.
  ) 
 Here is how much of TeX's memory you used:
- 5085 strings out of 492970
- 73511 string characters out of 3135846
- 146843 words of memory out of 3000000
- 8833 multiletter control sequences out of 15000+200000
+ 5093 strings out of 492970
+ 73792 string characters out of 3135846
+ 147851 words of memory out of 3000000
+ 8838 multiletter control sequences out of 15000+200000
  17178 words of font info for 67 fonts, out of 3000000 for 9000
  1141 hyphenation exceptions out of 8191
- 43i,9n,40p,851b,365s stack positions out of 5000i,500n,10000p,200000b,50000s
+ 43i,9n,40p,1144b,365s stack positions out of 5000i,500n,10000p,200000b,50000s
 <C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmbx7.pfb><C:/Pro
-gram Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmmi10.pfb><C:/Program Fil
-es/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmmi7.pfb><C:/Program Files/MiKTeX
- 2.9/fonts/type1/public/amsfonts/cm/cmr10.pfb><C:/Program Files/MiKTeX 2.9/font
-s/type1/public/amsfonts/cm/cmr5.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/pu
-blic/amsfonts/cm/cmr7.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfo
-nts/cm/cmr9.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cms
-s10.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmss8.pfb><
-C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmss9.pfb><C:/Progra
-m Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmssbx10.pfb><C:/Program File
-s/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmssi10.pfb><C:/Program Files/MiKTe
-X 2.9/fonts/type1/public/amsfonts/cm/cmssi12.pfb><C:/Program Files/MiKTeX 2.9/f
-onts/type1/public/amsfonts/cm/cmssi8.pfb><C:/Program Files/MiKTeX 2.9/fonts/typ
-e1/public/amsfonts/cm/cmsy10.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/publi
-c/amsfonts/cm/cmsy7.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfont
-s/cm/cmti10.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmt
-i7.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/symbols/msbm10.
-pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/symbols/msbm7.pfb>
-
-Output written on Robust_value.pdf (6 pages, 237555 bytes).
+gram Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmex10.pfb><C:/Program Fil
+es/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmmi10.pfb><C:/Program Files/MiKTe
+X 2.9/fonts/type1/public/amsfonts/cm/cmmi7.pfb><C:/Program Files/MiKTeX 2.9/fon
+ts/type1/public/amsfonts/cm/cmr10.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/
+public/amsfonts/cm/cmr7.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/ams
+fonts/cm/cmr9.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/c
+mss10.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmss8.pfb
+><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmss9.pfb><C:/Prog
+ram Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmssbx10.pfb><C:/Program Fi
+les/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmssi10.pfb><C:/Program Files/MiK
+TeX 2.9/fonts/type1/public/amsfonts/cm/cmssi12.pfb><C:/Program Files/MiKTeX 2.9
+/fonts/type1/public/amsfonts/cm/cmssi8.pfb><C:/Program Files/MiKTeX 2.9/fonts/t
+ype1/public/amsfonts/cm/cmsy10.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/pub
+lic/amsfonts/cm/cmsy5.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfo
+nts/cm/cmsy7.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cm
+ti10.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmti7.pfb>
+<C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/symbols/msbm10.pfb><C:
+/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/symbols/msbm7.pfb>
+Output written on Robust_value.pdf (7 pages, 258999 bytes).
 PDF statistics:
- 117 PDF objects out of 1000 (max. 8388607)
+ 134 PDF objects out of 1000 (max. 8388607)
  0 named destinations out of 1000 (max. 500000)
- 11 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 16 words of extra memory for PDF output out of 10000 (max. 10000000)
 

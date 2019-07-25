@@ -70,7 +70,6 @@ Motivation:
 
 
 
-
 No real distinction between SSD and SSR, under the ideal case of perfect estimates. Question is just what sample size should be chosen for a given parameter value. We want a system for making that decision that's coherent. The current convention isn't, because it doesn't formally account for costs. It survives because people game the process, but this gaming relies on adjusting the target difference and we can't do that in the SSR setting. So, applying conventional SSR, we get interim decisions that do not cohere with the initial SSD decisions (e.g. deciding the same power is suddenly worth a lot more sampling).
 
 We propose a simple method for accounting for cost and benefit through defining a value function and maximising it. We show how this leads to coherent decision making across nusiance parameter values, and therefore how it provides a basis for SSR. We then show that under our formulation fixed designs can be highly robust to nuisance parameter values and as such SSR can be avoided altogether, saving logisitcal headaches, money, keeping analyses simple (no multiple testing adjustments), and in many cases making the trial feasible (since the parameter can't be estimated with mch precision, e.g. hazard rate or ICC). We go on to suggest criteria for finding the best fixed design. We illustrate the general approach by applying to two examples.
@@ -82,7 +81,7 @@ First, introduce some notation and describe conventional SSD and SSR more formal
 
 Generally, $\sigma$ is not known and is replaced by an estimate $\hat{\sigma}$, which may be from external data, internal pilot data, or expert judgement. The difference to be detected, $\mu$, should be the MCID.
 
-We assume that all other things being equal, a higher powered trial is preferred to a lower powered trial; similarly, a trial of small sample size is preferred to a larger one. Under these assumptions, the constrained optimisation approach for choosing $n$ under different estimates $\hat{\sigma}$ is incoherent.
+We assume that all other things being equal, a higher powered trial is preferred to a lower powered trial; similarly, a trial of small sample size is preferred to a larger one. Under these assumptions, the constrained optimisation approach for choosing $n$ under different estimates $\hat{\sigma}$ will lead to varying choices of $n$ but a constant type II error rate of $\beta^*$. 
 
 \subsection{Value-based design}
 
@@ -94,20 +93,11 @@ Now, if we have a function $f(n)$ that returns the type II error rate obtained f
 $$
 n^* = {\arg\min}_{n \in \mathbb{N}} v(n, f(n)).
 $$
-What might the value function look like? Consider first a slice of the function with power fixed at some value $\beta_1$, denoted $v_{\beta_1}(n)$. Clearly this will be a strictly decreasing function in $n$, for all $\beta_1$. We propose that it will also be linear, and that the gradient is the same for all $\beta_1$ - that is, the cost of increasing the sample size by some amount $\Delta$ is independent of the starting point $(n_1, \beta_1)$. If a similar linear structure holds for $v_{n_1}(\beta)$, then we have a constant rate of substitution between $n$ and $\beta$. In this case a suitable value function will be of the form 
+We can safely assume that for any fixed $\beta$, $v_(n, \beta)$ as a function of $n$ will be strictly decreasing. We furthermore assume that it will also be linear, and that the gradient will be the same for all $\beta$. Together, these imply that the cost of increasing the sample size by some amount $\Delta$ is independent of the starting point $(n, \beta)$. Assuming the same holds when considering $v(n, \beta)$ as a function of $\beta$ for fixed $n$, the value function will be of the form
 $$
-v(n, \beta) = \beta + \lambda n,
+v(n, \beta) = - (\beta + \lambda n)
 $$
-corresponding to linear indifference curves. The optimal sample size can then be obtained by plotting the power curve for the problem at hand and finding the point where the tangent has gradient of $\lambda$ (approximately). For example, consider a two-sample t-test to detect a difference in means of size 1, an outcome standard deviation of $\sigma = 1$, and a value function with $\lambda = 0.025$. The power curve is plotted in Figure \ref{fig:ex1_tangent}, and the optimal sample size is $n = 17$ (giving a power of 0.807). 
-
-\begin{figure}
-\centering
-\includegraphics[scale=0.8]{./figures/ex1_tangent}
-\caption{.}
-\label{fig:ex1_tangent}
-\end{figure}
-
-As the figure suggests, if our assumption about the form of the value function holds then we can determine the value of $\lambda$ by simply plotting the power curve and choosing $n$; $\lambda$ is then the gradient of the tangent of the power curve at that point. Is this an accurate representation of our preferences? Do we aggree with its implications? Note that, for example, $\lambda = 0.025$ implies that $(n=0, \beta=0) \sim (n=40, \beta=1)$, and so 40 is the maximum sample size we would ever consider. When it comes to determining $\lambda$, we could use any hypothetical "power" curve and if our assumptions hold we should always choose the sample size that gives the same tangent gradient. For example, consider two other power curves obtained by changing the standard deviation from 1 to 0.7 and 1.3:
+The optimal sample size can then be obtained by plotting the power curve for the problem at hand and finding the point where the tangent has gradient of $\lambda$. For example, consider a two sample t-test and a value function with $\lambda = 0.025$. Power of the test is that to detect an MCID of 1, under three estimates of the outcome standard deviation $\sigma = 0.7, 1, 1.3$. Each of the three power curves are plotted in Figure \ref{fig:ex1_3tangents}, along with the corresponding sample sizes resulting from maximising the value function. We see that the optimal sample sizes for $\sigma = 0.7, 1, 1.3$ are $n = 12, 17, 18$ with powers 0.92, 0.81, 0.61 respectively.
 
 \begin{figure}
 \centering
@@ -116,7 +106,29 @@ As the figure suggests, if our assumption about the form of the value function h
 \label{fig:ex1_3tangents}
 \end{figure}
 
-On the face of it, this approach seems to be totally inconsistent with the usual method of setting a nominal power to detect our MCID of $\delta = 1$ at (say) 80\%. Under that model, an initial guess of $\sigma = 1$ gives a sample size of $n = 17$, and if we were told our initial estimate of $\sigma = 1$ was incorrect and that actually $\sigma = 1.3$, we should then revise the sample size to $n = 27$ - not $n = 18$ as suggested by our model. But, the common practice of revising the MCID to fit the sample size that is considered `feasible' suggests that the two methods may actually agree. So, we might reason that $n = 27$ is not feasible and unlikely to be funded, and pretend that our MCID is actually $\delta = 1.23$. Then, $n = 18$ will give us 80\% power for this new MCID, but 61\% for the original.
+\subsection{Sample size samba}
+
+The value-based model for SSD initially appears to be completely incompatible with conventional SSD methods, leading as it does to powers substantially above or below the usual nominal values of 0.8 and 0.9. On reflection, however, it may actually be a superior descriptive model than the constrained method when we account for the common practice of `gaming' SSD calculations by adjusting the difference to be detected until a `feasible' sample size results - the so-called `sample size samba'. For example, suppose the true MCID is $\mu = 1$. An initial guess of $\hat{\sigma} = 1$ gives a sample size of $n = 17$ to achieve 80\% power. If we were told our initial estimate of $\sigma$ was incorrect and that actually $\sigma = 1.3$, the constrained method tells us to revise the sample size to $n = 27$. We consider this to be infeasible, and pretend that our MCID is actually $\delta = 1.23$. Then, $n = 18$ will give us 80\% power for this new target difference, but 61\% for the true MCID. Using the value-based method we would arrive at the same design of $n = 18$, but through an altogether more transparent route.
+
+\subsection{Re-estimation}
+
+In the fixed design setting, with a single estimate $\hat{\sigma}$, the sample size samba may allow sampling costs to be considered implicitly and thus arrive at the same design choice as would be obtained using the value method. It is, however, an opaque approach, and when the true MCID has been decided upon and published it will not be possible at all. In the re-estimation setting, where we expect at least one further estimate $\hat{\sigma}_2$ to be obtained, it is not possible since the MCID will have already been declared. Following the conventional approach will then force us to accept potentially absurb inflations to the sample size to maintain the same power, or to stop recruiting to the trial and just analyse the data obtained by that point. If re-estimating using the value-based method, any increases in the sample size will be bounded.
+
+\subsection{Fixed designs}
+
+As illustrated above, the value-based approach leads to sample size choices which are considerably less sensitive to the nuisance parameter. This lack of sensitivity means that, in some cases, the benefits gained through adjusting the sample size after obtaining an interim estimate can be limited, and so it may be preferable to use a fixed design and avoid the logistical and statistical complications that an interim analysis brings. We now consider a possible optimality criterion which could be used to choose such a fixed design.
+
+Denote the fixed design sample size by $n^*$, and the optimal (value maximising) sample size as a function of the nuisance parameter by $n(\sigma)$. Then, for any $\sigma$, we can calculate the difference in value between the fixed and optimal designs:
+$$
+\delta(\sigma | n^*) = v(n(\sigma)) - v(n^*).
+$$
+We can then choose a fixed design by maximising the area of nuisance parameter space $\Sigma$ over which the discrepancy $\delta(\sigma | n^*)$ is within some tolerable amount, $\delta^*$. That is, we solve
+$$
+\max_{n^*} \int_{\Sigma} I[\delta(\sigma | n^*) \leq \delta^*] d\sigma.
+$$
+
+An alternative criterion could be to minimise than maximum discrepancy over some area of interest in the nuisance parameter space.
+
 
 \subsection{Known nuisance parameters}
 
@@ -130,11 +142,41 @@ Normative model is also descriptive, justifying the `sample size samba'.
 
 \subsection{Cluster RCT}
 
+Consider a cluster RCT comparing two groups based on the mean of their continuous primary outcomes. In each arm we need to choose the number of clusters $k$ and the number of participants $n$. The MCID is $\mu = 0.3$, and the unknown nuisance parameters are the total variance $\sigma_T^2 = \sigma_B^2 + \sigma_W^2$ and the ICC $\rho = \sigma_B^2/\sigma_T^2$.
+
+To determine the parameter values for the value function, we take an initial guess for the parameter values at $\sigma_T^2 = 1$ and $\rho = 0.05$ and plot the power of the trial as a function of $n$ for various levels of $k$. This is shown in Figure \ref{fig:cluster_pow}.
+
+\begin{figure}
+\centering
+\includegraphics[scale=0.8]{./figures/cluster_pow}
+\caption{.}
+\label{fig:cluster_pow}
+\end{figure}
+
+From the power curves, we decide that the point $k=25, n=450$ offers the best trade-offs between sampling at each level and power. We then calculate the corresponding value function parameter, $\lambda = (0.006026021, 0.000324420)$. Calculating the value of optimal designs for a range of nuisance parameter values, we can plot the discrepancies between these and the value of the original fixed design as shown in Figure \ref{fig:cluster_disc}.
+
+\begin{figure}
+\centering
+\includegraphics[scale=0.8]{./figures/cluster_disc}
+\caption{.}
+\label{fig:cluster_disc}
+\end{figure}
+
 \subsection{Survival}
 
 \section{Discussion}
 
 Ethics of underpowered and overpowered studies; the threshold myth.
+
+\cite{Schulz2005} - Sample size calculations in randomised trials: mandatory and mystical
+
+\cite{Halpern2002} - The continuing unethical conduct of underpowered clinical trials
+
+\cite{Lilford2002} - The Ethics of Underpowered Clinical Trials
+
+\cite{Bacchetti2005a} - Ethics and sample size
+
+\cite{Bacchetti2005} - Bacchetti et al. Respond to ``Ethics and sample size - Another view''
 
 \cite{Norman2012} - Sample size calculations: should the emperor's clothes be off the peg or made to measure?
 
@@ -163,6 +205,6 @@ This work was supported by the Medical Research Council [grant number xxx].
 \end{funding}
 
 \bibliographystyle{SageV}
-\bibliography{U:/Literature/Databases/DTWrefs}
+\bibliography{C:/Users/meddwilb/Documents/Literature/Databases/DTWrefs}
 
 \end{document}

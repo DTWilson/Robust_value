@@ -1,0 +1,166 @@
+---
+title: "Untitled"
+author: "Duncan T. Wilson"
+date: "18/07/2019"
+output: ioslides_presentation
+---
+
+```{r setup, include=FALSE}
+require(ggplot2)
+require(plotly)
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+## Background {data-background=ex1_single_run.png }
+
+Conventional SSD - constrained optimisation
+
+Sensitive to nuisance parameters: variance components, control arm rates
+
+## The Threshold Myth
+
+Using conventional SSD procedure makes sense if there is a threshold - but this is a myth
+
+## Incoherence - an example
+
+Continuous normal with unknwon SD
+
+Plot shoiwing how n varies with SD - animate
+
+## Samba
+
+Is constrained opt for SSD incoherent?
+
+Not in practice - becuase of the sample size samba
+
+We do balance sampling costs and power (e..g. choosing a low power trial if 80\% was bad value), but in a sneaky way
+
+Example - shiny, showing the petend power and the actual power
+
+## Incoherence in SSR
+
+Suppose we inflate in SSR
+
+No flexibility to samba - already declared the MCID
+
+So, SSR is an incoherent procedure
+
+## Proposal
+
+We should design based on some explicit combination of cost and benefit 
+
+We aleardy do this in SSD, but not in a transparent way and therefore not as well as we could
+
+Would elimante incoherence from SSR, so we can better deal with nuisance parameter uncertainty (which is everywhere)
+
+We will show that it could actually free us from the need to do SSR - good for situations where interim analysis would be hard (e.g. long term endpoint) or where the nuisance parameter is hard to estimate (e.g. ICC - ref to Eldridge paper and the other SSR cluster one?)
+
+## Method
+
+Simple weighted of sum of power and sample size.
+
+Assumptions: linear cost and linear benefit in power. Latter is a bit shaky - e.g. very high power at the MCID will also lead to high power not far from the null. But for the scales we are interested in it is probably a safe assumption. And in that example, the rate of increase in power would be tiny, so perhaps OK even then.
+
+Implications: e.g. moving from 20 to 25% is of the same value as moving from 75 to 80\%
+
+If we do an SSR re-estimation, compare the joint distributions of power, n, and value for both methods. As we would expect from previous slide, if we misspecify the SD our SSR precedure will have much less variability in n (but now giving some variability in power)
+
+## Fixed designs
+
+... but we can go further.
+
+Suppose we don't want t, or can't, do an interim SSR (e.g. nuisance parameter is very hard to estimate with a small sample, e.g. ICC)
+
+Take our initial design, and compare its value over SD with the value of the best design.
+
+We see there isn't much difference for a large range of SD - so an interim analysis is of little value.
+
+Plotly so we can see the difference in value at different points
+
+## Optimality criteria
+
+If we want to use a fixed design, how to choose one?
+
+We could do a minimax - over some sd range, choose design with the best worst case value. But, sensitive to the range end points.
+
+Alternative - choose the design which maximises the param space size where value is within a tolerable distance from the optimal.
+
+## Example 1: cluster RCT
+
+Sample size is number of clusters - cluster size is fixed.
+
+Uncertainty in the two variance components (although assumed common across arms)
+
+Take conventional design and extract value function parameters.
+
+-------
+
+Plot optimal sample size over param space. Just a lablelled contour plot?
+
+Plot differnce of value of conventional design and optimal design
+
+Search for best fixed design - do this manually, working along k values, plotting the covered area, and plotting the result.
+
+------
+
+```{r}
+df <- expand.grid(x=seq(-3,3,0.05), y=seq(-3,3,0.05))
+df$d <- dnorm(df$x)*dnorm(df$y)
+
+ggplot(df, aes(x, y, z=d)) + geom_contour()
+```
+
+------
+
+```{r}
+plot_ly(midwest, x = ~percollege, color = ~state, type = "box")
+```
+
+## Example 2: Surivival
+
+Sample size is time recruiting and time following-up
+
+Nuisance param is the event rate in the control arm
+
+Take conventional design and extract value function parameters.
+
+========
+
+Plot optimal sample size over param space. Just 1 d plot with two lines - plotly here since lines will be on different scales
+
+Plot value of conventional design
+
+Search for best fixed design - can't do manually now, but could animate the 2D search process
+
+Plot value of best fixed design.
+
+=========
+
+```{r}
+df <- data.frame(x=seq(0,1,0.01))
+df$y1 <- 2*df$x + 0.2
+df$y2 <- 2.1*df$x + 0.25
+df$d <- df$y2 - df$y1
+
+p <- ggplot(df, aes(x, label = d)) + geom_line(aes(y=y1), linetype=1) + 
+  geom_line(aes(y=y2), linetype=2) +
+  geom_ribbon(data=df[df$x > 0.3 & df$x < 0.7,], aes(ymin=y1, ymax=y2), fill="blue", alpha=0.1) +
+  theme_minimal()
+
+ggplotly(p, tooltip="d")
+```
+
+## Implementation
+
+R code
+
+## Discussion
+
+Alternatives: could look at precision rather than power, but we are more familiar with the latter; and could use more elaborate value function, but will be harder to define / elicit. And we find that sample size keeps increasing with SD - so not intuitively what we want.
+
+## Conclusion
+
+Sample size is not a game - shouldn't be playing with patients
+
+
+

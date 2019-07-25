@@ -13,29 +13,11 @@ require(ggplot2)
 require(shiny)
 require(pso)
 require(viridis)
-```
-
-```{r echo = FALSE}
-selectInput("colors", "Choose a color palette", 
-  choices = c("viridis", "magma", "inferno", "plasma", "heat",
-  "terrain", "topographic", "cyan/magenta", "rainbow"))
-
-colorPalette <- reactive({
-  switch(input$colors, 
-         "viridis" = viridis(200),
-         "magma" = viridis(200, option = "A"),
-         "inferno" = viridis(200, option = "B"),
-         "plasma" = viridis(200, option = "C"),
-         "heat" = heat.colors(200),
-         "terrain" = terrain.colors(200),
-         "topographic" = topo.colors(200),
-         "cyan/magenta" = cm.colors(200),
-         "rainbow" = rainbow(200))
-})
-
-renderPlot({
-  image(volcano, col = colorPalette())
-})
+require(gganimate)
+require(transformr)
+require(magick)
+require(RColorBrewer)
+cols <- brewer.pal(8, "Dark2") 
 ```
 
 # Paper appendix
@@ -58,11 +40,40 @@ value <- function(x, lambda)
 
 
 Plotting value for a two-sample t-test over a range of $n$:
-```{r}
-lambda <- 0.025
+```{r, echo=F}
+sliderInput("lambda", "Choose lambda", 0, 0.1, 0.025, step=0.01, animate = T)
+sliderInput("sd", "Choose sd", 0.5, 2, 1, step=0.1)
 
+renderPlot({
+
+  df <- expand.grid(n=2:50, pow=1)
+  df$pow <- sapply(df$n, function(n) power.t.test(n=n, delta=1, sd=input$sd)$power)
+  df$v <- apply(df, 1, value, lambda = input$lambda)
+
+  opt <- df[which.max(df$v),]
+  
+  const <- data.frame(n=ceiling(power.t.test(delta=1, sd=input$sd, power=0.8)$n),
+                      pow=0.8)
+
+  # value contours
+  df2 <- expand.grid(n=2:50, pow=seq(0,1,0.1))
+  df2$v <- apply(df2, 1, value, lambda=input$lambda)
+
+  ggplot(df2, aes(n, pow)) + geom_contour(aes(z=v, colour=..level..)) +
+    geom_point(data=df) + geom_point(data=opt, colour=cols[1]) +
+    #geom_abline(slope=input$lambda, intercept = opt$p - input$lambda*opt$n, colour="red") +
+    geom_segment(aes(x=opt$n, y=opt$pow, xend=opt$n, yend=0), colour=cols[1], linetype=2) +
+    geom_point(data=const, colour=cols[2]) +
+    geom_segment(aes(x=const$n, y=const$pow, xend=const$n, yend=0), colour=cols[2], linetype=2) +
+    ylab("Power") + theme_minimal()
+  
+})
+```
+
+```{r, echo=F}
+lambda <- 0.025
 df <- expand.grid(n=2:50, pow=1)
-df$pow <- sapply(df$n, function(n) power.t.test(n=n, delta=1)$power)
+df$pow <- sapply(df$n, function(n) power.t.test(n=n, delta=1, )$power)
 df$v <- apply(df, 1, value, lambda = lambda)
 
 opt <- df[which.max(df$v),]
@@ -82,6 +93,7 @@ ggplot(df2, aes(n, pow)) + geom_contour(aes(z=v, colour=..level..)) +
 As the figure suggests, if our assumption about the form of the value function holds then we can determine the value of $\lambda$ by simply plotting the power curve and choosing $n$; $\lambda$ is then the gradiant of the tangent of the power curve at that point. Is this an accurate representation of our preferences? Do we aggree with its implications? Note that, for example, $\lambda = 0.025$ implies that $(n=0, \beta=0) \sim (n=40, \beta=1)$, and so 40 is the maximum sample size we would ever consider. When it comes to determining $\lambda$, we could use any hypothetical "power" curve and if our assumptions hold we should always choose the sample size that gives the same tangent gradient. For example, consider two other power curves obtained by changing the standard deviation from 1 to 0.7 and 1.3:
 
 ```{r}
+
 df3 <- expand.grid(n=2:50, pow=1)
 df3$pow <- sapply(df3$n, function(n) power.t.test(n=n, delta=1, sd=0.7)$power)
 df3$v <- apply(df3, 1, value, lambda = lambda)
@@ -120,7 +132,7 @@ Another way to see the flaw in SSR is to consider an extreme scenrio, e.g. disco
 As suggested by the example above, an interesting property of our method when applied to a problem with normally distributed outcomes is that as $\sigma$ increases, the required sample size does not necessarily increase (in contrast with the SSR apporach). We can illustrate by extending the previous plot, showing the power curve for a larger range of $\sigma$ along with their optimal sample sizes:
 
 ```{r}
-df <- expand.grid(n=2:50, sig=seq(0.3,2,0.05))
+df <- expand.grid(n=2:70, sig=seq(0.3,2,0.05))
 df$pow <- apply(df, 1, function(x) power.t.test(n=x[1], delta=1, sd=x[2])$power)
 df$v <- df$pow - lambda*df$n
 
@@ -133,12 +145,49 @@ f <- function(n, sig)
 opt <- data.frame(sig=seq(0.3,2,0.05), n=1)
 opt$n <- sapply(opt$sig, function(x) optim(10, f, method="Brent", lower=2, upper=50, sig=x)$par)
 opt$pow <- apply(opt, 1, function(x) power.t.test(n=x[2], delta=1, sd=x[1])$power)
+opt$inter <- opt$pow - lambda*opt$n
 
-ggplot(df, aes(n, pow, colour=sig, group=as.factor(sig))) + geom_line() +
-  geom_point(data=opt, colour="red") +
-  geom_vline(xintercept = max(opt$n), linetype=2, colour="red")
+tangent <- df[,1:2]
+tangent$pow <- apply(tangent, 1, function(x, opt) opt[opt$sig == x[2],]$inter + lambda*x[1], opt=opt)
 
-opt[which.max(opt$n),]
+const <- data.frame(sig=seq(0.3,2,0.05), n=1)
+const$n <- sapply(const$sig, function(s) power.t.test(delta=1, sd=s, power=0.8)$n)
+const$pow <- 0.8
+
+#ggplot(df, aes(n, pow, colour=sig, group=as.factor(sig))) + geom_line() +
+#  geom_point(data=opt, colour="red") +
+#  geom_vline(xintercept = max(opt$n), linetype=2, colour="red")
+
+p <- ggplot(df, aes(n, pow)) + geom_line() +
+  geom_point(data=opt, colour=cols[1]) + geom_line(data=tangent, colour=cols[1], linetype=2) +
+  geom_point(data=const, colour=cols[2]) + geom_hline(yintercept = 0.8, colour=cols[2], linetype=2) +
+  ylab("Power") + scale_y_continuous(breaks=seq(0,1,0.2), limits=c(0,1)) + theme_minimal() +
+  transition_time(time=sig)
+ 
+a_gif <- animate(p, rewind=T)
+
+p2 <- ggplot(opt, aes(y=n)) + 
+  geom_point(aes(x=sig), colour=cols[1], size=2) + 
+  geom_point(data=const, aes(x=sig), colour=cols[2], size=2) +
+  geom_line(data=data.frame(sig2=opt$sig, n=opt$n), aes(x=sig2), colour=cols[1]) +
+  geom_line(data=data.frame(sig2=const$sig, n=const$n), aes(x=sig2), colour=cols[2]) +
+  theme_minimal() +
+  transition_time(time=sig)  
+
+b_gif <- animate(p2, rewind=T)
+
+a_mgif <- image_read(a_gif)
+b_mgif <- image_read(b_gif)
+
+new_gif <- image_append(c(a_mgif[1], b_mgif[1]))
+for(i in 2:100){
+  combined <- image_append(c(a_mgif[i], b_mgif[i]))
+  new_gif <- c(new_gif, combined)
+}
+
+new_gif
+
+#opt[which.max(opt$n),]
 ```
 
 Clearly, the optimal sample size under our formulation is much less sensitive to the nuisance parameter. Can we choose a fixed sample size design, and thus avoid the logistic and practical difficulties associated with interim analyses? To start, we can look at the original design choice based on the best estimate of the nuisance parameter. We can calculate the value of that design accross a range of parameter values, and contrast with the value of the optimal design:
@@ -206,9 +255,21 @@ clus_pow <- function(x, var_t, rho)
   power.t.test(n=k, delta=0.3, sd=sqrt(clus_var))$power
 }
 
-clus_pow(c(25, 450), 1, 0.05)
-lambda <- grad(clus_pow, c(25, 450), var_t=1, rho=0.05)
+# plot power function to find value params
+df <- expand.grid(k=seq(10, 40, 5), n=seq(2,700,20))
+df$pow <- apply(df, 1, clus_pow, var_t=1, rho=0.05)
 
+ggplot(df, aes(n, pow, group=k, colour=k)) + geom_line() +
+  geom_point(data=data.frame(k=15, n=470, pow=clus_pow(c(15, 470), 1, 0.05)), colour="red") +
+  theme_minimal()
+
+#ggsave("./paper/figures/cluster_pow.pdf", height=9, width=14, units="cm")
+
+des <- c(25, 450)
+des <- c(15, 470)
+des <- c(25, 270)
+clus_pow(des, 1, 0.05)
+lambda <- grad(clus_pow, des, var_t=1, rho=0.05)
 
 f <- function(x, var_t, rho)
 {
@@ -216,14 +277,14 @@ f <- function(x, var_t, rho)
   -(pow - sum(lambda*x))
 }
 
-opt <- expand.grid(var_t=seq(0.8, 2, 0.05), rho=seq(0,0.2,0.01))
+opt <- expand.grid(var_t=seq(0.5, 2, 0.05), rho=seq(0,0.2,0.01))
 opt <- cbind(opt, t(apply(opt, 1, function(x) optim(c(10,10), fn=f, lower=c(2,2), upper=c(50,1000), var_t=x[1], rho=x[2], method="L-BFGS-B")$par)))
 names(opt)[3:4] <- c("k", "n")
 opt$v <- apply(opt, 1, function(x) f(x[3:4],x[1],x[2]))
 
 rob <- opt
-rob$k <- 25
-rob$n <- 450
+rob$k <- des[1]
+rob$n <- des[2]
 rob$v <- apply(rob, 1, function(x) f(x[3:4],x[1],x[2]))
 
 rob$d <- opt$v - rob$v
@@ -232,7 +293,7 @@ ggplot(rob, aes(var_t, rho, z=d, colour=..level..)) + geom_contour(breaks=c(-0.0
   ylab(expression(rho)) + xlab(expression(sigma[t]^2)) +
   theme_minimal()
 
-sum(rob$v - opt$v)
+#ggsave("./paper/figures/cluster_disc.pdf", height=9, width=14, units="cm")
 ```
 
 ## Example - survival
