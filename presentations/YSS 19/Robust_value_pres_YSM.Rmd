@@ -192,7 +192,7 @@ df <- cbind(df, t(sapply(df$med1, get_design)))
 names(df)[2:4] <- c("a", "t", "v")
 
 df2 <- data.frame(med1=df$med1)
-fixed <- c(21, 47)
+fixed <- c(20, 47)
 df2$a <- fixed[1]; df2$t <- fixed[2]
 df2$v <- -sapply(df2$med1, function(x) get_value(fixed, x, lambda))
 df2$d <- df2$v - df$v
@@ -203,13 +203,32 @@ ggplot(df, aes(a, t-a, colour=med1)) + geom_point() +
   theme_minimal()
 
 # Optimal and fixed design values
-p <- ggplot(df2, aes(med1)) + geom_line(aes(y=v)) + geom_line(aes(y=-d), colour="blue") +
+p <- ggplot(df2, aes(x=med1, text=round(df2$d, 2))) + geom_line(aes(y=v)) + geom_line(aes(y=-d), colour="blue") +
   geom_line(data=df, aes(y=v), colour="red") + 
   xlab("Median survival time") + ylab("Value") +
   theme_minimal()
 
 ggplotly(p)
 ```
+
+```{r, eval=F}
+coverage <- function(fixed, fit, diff, lambda)
+{
+  f <- function(x, fixed, lambda, fit, diff)
+  {
+    as.numeric(as.numeric(predict(fit, newdata = data.frame(med1=x))) + get_value(fixed, x, lambda) <= diff)
+  }
+  
+  -integrate(f, 2, 8, fixed=fixed, lambda=lambda, fit=fit, diff=diff)$value
+}
+
+fit <- gam(v ~ s(med1), data=df)
+
+diff <- 0.03
+opt <- optim(c(20,47), coverage, fit=fit, diff=diff, lambda=lambda,
+              lower = c(0,0), upper = c(100,100), method="L-BFGS-B")
+```
+
 
 ```{r, eval=F}
 df <- data.frame(x=seq(0,1,0.01))
