@@ -2,17 +2,20 @@
 title: "Untitled"
 author: "Duncan T. Wilson"
 date: "18/07/2019"
-output: ioslides_presentation
+output: 
+  ioslides_presentation:
+    logo: UoL_logo3.png
+#runtime: shiny
 ---
 
 ```{r setup, include=FALSE}
 require(ggplot2)
 require(plotly)
 require(numDeriv)
-knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(echo = FALSE, eval=F)
 ```
 
-## Background {data-background=ex1_single_run.png }
+## Background {data-background=CTRU-corner-&-logo.png data-background-position="left bottom" data-background-size=20%}
 
 Conventional SSD - constrained optimisation
 
@@ -105,16 +108,68 @@ Search for best fixed design - do this manually, working along k values, plottin
 ------
 
 ```{r}
-df <- expand.grid(x=seq(-3,3,0.05), y=seq(-3,3,0.05))
-df$d <- dnorm(df$x)*dnorm(df$y)
+clus_pow <- function(x, var_t, rho)
+{
+  k <- x[1]; n <- x[2]; m <- n/k
+  clus_var <- var_t*rho + (var_t - var_t*rho)/m
+  power.t.test(n=k, delta=0.3, sd=sqrt(clus_var))$power
+}
 
-ggplot(df, aes(x, y, z=d)) + geom_contour()
+# plot power function to find value params
+df <- expand.grid(k=seq(10, 40, 5), n=seq(2,700,20))
+df$pow <- apply(df, 1, clus_pow, var_t=1, rho=0.05)
+
+p <- ggplot(df, aes(n, pow, group=k, colour=k)) + geom_line() +
+  geom_point(data=data.frame(k=15, n=470, pow=clus_pow(c(15, 470), 1, 0.05)), colour="red") +
+  theme_minimal()
+
+ggplotly(p, tooltip = c("group", "x", "y"))
+
+#des <- c(25, 450)
+des <- c(15, 470)
+#des <- c(25, 270)
+clus_pow(des, 1, 0.05)
+lambda <- grad(clus_pow, des, var_t=1, rho=0.05)
 ```
 
-------
+```{r}
+get_value <- function(x, var_t, rho)
+{
+  pow <- clus_pow(x, var_t, rho)
+  -(pow - sum(lambda*x))
+}
+
+df <- expand.grid(var_t=seq(0.5, 2, 0.025), rho=seq(0,0.2,0.005))
+df <- cbind(df, t(apply(df, 1, function(x) optim(c(10,10), fn=get_value, lower=c(2,2), upper=c(50,1000), var_t=x[1], rho=x[2], method="L-BFGS-B")$par)))
+names(df)[3:4] <- c("k", "n")
+df$v <- apply(df, 1, function(x) get_value(x[3:4],x[1],x[2]))
+```
+
+## Shiny
 
 ```{r}
-plot_ly(midwest, x = ~percollege, color = ~state, type = "box")
+numericInput("k", "How many clusters?", des[1])
+numericInput("n", "How many patients?", des[2])
+numericInput("tol", "How tolerable?", 0.01)
+
+rmarkdown::render_delayed({
+  renderPlot({
+    des <- c(input$k, input$n)
+    
+    df2 <- df
+    df2$k <- des[1]
+    df2$n <- des[2]
+    df2$v <- apply(df2, 1, function(x) get_value(des,x[1],x[2]))
+    
+    df2$d <- df$v - df2$v
+      
+    ggplot(df2, aes(var_t, rho, z=d, colour=..level..)) +
+      geom_contour(breaks=seq(-0.00,-0.1,-0.01)) +
+      geom_contour(breaks=c(-input$tol), colour="red") +
+      ylab(expression(rho)) + xlab(expression(sigma[t]^2)) +
+      theme_minimal()
+  })
+})
 ```
 
 ## Example 2: Surivival
@@ -211,7 +266,7 @@ p <- ggplot(df2, aes(x=med1, text=round(df2$d, 2))) + geom_line(aes(y=v)) + geom
 ggplotly(p)
 ```
 
-```{r, eval=F}
+```{r}
 coverage <- function(fixed, fit, diff, lambda)
 {
   f <- function(x, fixed, lambda, fit, diff)
@@ -230,7 +285,7 @@ opt <- optim(c(20,47), coverage, fit=fit, diff=diff, lambda=lambda,
 ```
 
 
-```{r, eval=F}
+```{r}
 df <- data.frame(x=seq(0,1,0.01))
 df$y1 <- 2*df$x + 0.2
 df$y2 <- 2.1*df$x + 0.25
