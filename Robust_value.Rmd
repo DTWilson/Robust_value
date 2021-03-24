@@ -144,6 +144,9 @@ Sim study comparing methods for SSD - for different points and interval widths, 
 Sim study comparing methods for SSR. As above, but now what is the optimal n_p? And what are the resulting optimal distributions on power and total sample size / total cost?
 (Expect bigger differences here)
 
+Note on NCT method -
+This gives a decision rule such that the overall power of a pilot-then-main trial process is nominal. When limiting ourselves to SSD, this is not a relevant comparator, but it will be for SSR. In practice, it leads to a small increase the the usual constrained design, so just compare against that instead. Note that by implicitly arguing an average power is of the same value as a conditional power, the implied utility (and therefore value) function on power is linear. Note that this is then incompatible with the threshold myth - if the myth holds, we would much prefer a sure thing of 0.85 to a 50/50 gamble between 0.75 and 0.95. In comparison, the upper CI approach can be understood as minimax regret when the value function is a threshold.
+
 ## Introduction
 
 In this document we will develop applications of a value-based approach to sample size determination (SSD) when nuisance parameters are unknown. The scope is limited to SSD - we will not consider sample size re-estimation here.
@@ -264,72 +267,9 @@ plots2[[i]] <- ggplot(rbind(df[,-3], df2), aes(sig, n, colour=t, linetype=t)) + 
 
 
 
-Now, find the sample size which minimises the maximum regret over a given SD interval. For comparison, also look at upper CI and NCT methods.
+When given a point and interval estimate of $\sigma$, we can choose $n$ to minimaise the maximum regret over that interval. 
 
-First, make a list of scenarios in terms of estimated sds and their 95\% CI limits based on varying degrees of freedom / hypothetical pilot sample sizes.
-
-```{r}
-df <- expand.grid(sig = seq(0.3, 2, l = 10),
-                  k = seq(10, 100, l = 10))
-df$lo <- sqrt(df$k*df$sig^2/qchisq(0.975, df$k)) 
-df$up <- sqrt(df$k*df$sig^2/qchisq(0.025, df$k)) 
-df$n <- df$n_ci <- df$n_nct <- NA
-
-plots3 <- vector("list", 4)
-for(i in 1:nrow(params)){
-  # Now compute an n x sig matrix of values
-  lambda <- params[i,1]; gamma <- params[i, 2]
-  sigs <- seq(min(df$lo), max(df$up), l = 200)
-  ns <- c(0, 2:500)
-  
-  vs <- matrix(rep(NA, length(sigs)*length(ns)), ncol = length(sigs))
-  for(j in 1:nrow(vs)){
-    for(k in 1:ncol(vs)){
-      p <- 0
-      if(ns[j] != 0 ) p <- pow(ns[j], sigs[k])
-      vs[j, k] <- v(ns[j], p, lambda, gamma)
-    }
-  }
-  
-  for(j in 1:nrow(df)){
-    vs_sub <- vs[, sigs >= df[j, "lo"] & sigs <= df[j, "up"]]
-    opt_v <- -apply(vs_sub, 2, min)
-    regs <- t(t(vs_sub) + opt_v)
-    df$n[j] <- ns[which.min(apply(regs, 1, max))]
-    df$r[j] <- min(apply(regs, 1, max))
-    
-    # Use the point estimate
-    vals <- v(ns, pow(ns, df$sig[j]), lambda, gamma)
-    vals[1] <- v(0, 0, lambda, gamma)
-    df$n_fix[j] <- ns[which.min(vals)]
-    df$r_fix[j] <- max(regs[which(ns == df$n_fix[j]),])
-  
-    # Use the upper CI point, as in Browne
-    #df$n_ci[j] <- which(pow(3:1500, df$up[j]) >= 0.8)[1] + 2
-        
-    # Use the non-central t method of Julious
-    ns2 <- 3:1000
-    if(i == 1 | i == 2){
-      z <- (2*qt(0.8, df$k[j], qt(0.975, 2*ns2 - 2))^2)*(df$sig[j]^2)/(0.3^2)
-    } else {
-      z <- (2*qt(0.8, df$k[j], qt(0.975, 2*ns2 - 2))^2)*(df$sig[j]^2)/(0.3794427^2)
-    }
-    df$n_nct[j] <- ns2[ns2 >= z][1]
-  }
-  
-  plots3[[i]] <- ggplot(df, aes(k)) + geom_tile(aes(y = sig, fill = n)) +
-    scale_fill_viridis(discrete=FALSE, limits = c(0,250)) + 
-      geom_line(data = df[df$sig == 1,], aes(y = up)) +
-      geom_line(data = df[df$sig == 1,], aes(y = lo)) +
-      ylim(c(0.3, 2)) +
-    ylab("Point estimate SD") + xlab("Degrees of freedom") +
-    theme_minimal()
-}
-
-(plots3[[1]] + plots3[[2]]) /(plots3[[3]] + plots3[[4]]) + plot_layout(guides = "collect") & theme(legend.position = 'bottom')
-```
-
-Now, look at a specific point estimate and interval. For each scenario, plot the values of (i) the optimal n, (ii) the minimax n, and (iii) the locally optimal n at the point estimate.
+Look at a specific point estimate and interval. For each scenario, plot the values of (i) the optimal n, (ii) the minimax n, and (iii) the locally optimal n at the point estimate.
 
 ```{r}
 sig <- 1; k <- 30
@@ -363,8 +303,8 @@ for(i in 1:nrow(params)){
   minmax_v <- -vs[which.min(apply(regs, 1, max)),]
     
   # Use the point estimate
-  vals <- v(ns, pow(ns, sig), lambda, gamma)
-  vals[1] <- v(0, 0, lambda, gamma)
+  vals <- v(ns[-1], pow(ns[-1], df$sig[j]), lambda, gamma)
+  vals <- c(v(0, 0, lambda, gamma), vals)
   n_fix <- ns[which.min(vals)]
   fix_v <- -vs[which.min(vals),]
   #fix_v <- -vs[20,]
@@ -383,8 +323,82 @@ for(i in 1:nrow(params)){
 (plots4[[1]] + plots4[[2]]) /(plots4[[3]] + plots4[[4]]) + plot_layout(guides = "collect") & theme(legend.position = 'bottom')
 ```
 
-Now, plot the minimax regret for each scenario for each n.
+Now find the optimal (i.e. minimax regret) design for a range of point estimates and intervals (summarised by their dof).
 
+```{r}
+df <- expand.grid(sig = seq(0.3, 2, l = 50),
+                  k = seq(10, 100, l = 50))
+df$lo <- sqrt(df$k*df$sig^2/qchisq(0.975, df$k)) 
+df$up <- sqrt(df$k*df$sig^2/qchisq(0.025, df$k)) 
+df$n <- df$n_ci <- df$n_nct <- NA
+
+plots3 <- vector("list", 4)
+for(i in 1:nrow(params)){
+  # Now compute an n x sig matrix of values
+  lambda <- params[i,1]; gamma <- params[i, 2]
+  sigs <- seq(min(df$lo), max(df$up), l = 200)
+  ns <- c(0, 2:500)
+  
+  vs <- matrix(rep(NA, length(sigs)*length(ns)), ncol = length(sigs))
+  for(j in 1:nrow(vs)){
+    for(k in 1:ncol(vs)){
+      p <- 0
+      if(ns[j] != 0 ) p <- pow(ns[j], sigs[k])
+      vs[j, k] <- v(ns[j], p, lambda, gamma)
+    }
+  }
+  
+  for(j in 1:nrow(df)){
+    vs_sub <- vs[, sigs >= df[j, "lo"] & sigs <= df[j, "up"]]
+    opt_v <- -apply(vs_sub, 2, min)
+    regs <- t(t(vs_sub) + opt_v)
+    df$n[j] <- ns[which.min(apply(regs, 1, max))]
+    df$r[j] <- min(apply(regs, 1, max))
+    
+    # Use the point estimate only
+    vals <- v(ns[-1], pow(ns[-1], df$sig[j]), lambda, gamma)
+    vals <- c(v(0, 0, lambda, gamma), vals)
+    df$n_fix[j] <- ns[which.min(vals)]
+    df$r_fix[j] <- max(regs[which(ns == df$n_fix[j]),])
+  
+    # Use the upper CI point, as in Browne
+    #df$n_ci[j] <- which(pow(3:1500, df$up[j]) >= 0.8)[1] + 2
+        
+    # Use the non-central t method of Julious
+    #ns2 <- 3:1000
+    #if(i == 1 | i == 2){
+    #  z <- (2*qt(0.8, df$k[j], qt(0.975, 2*ns2 - 2))^2)*(df$sig[j]^2)/(0.3^2)
+    #} else {
+    #  z <- (2*qt(0.8, df$k[j], qt(0.975, 2*ns2 - 2))^2)*(df$sig[j]^2)/(0.3794427^2)
+    #}
+    #df$n_nct[j] <- ns2[ns2 >= z][1]
+  }
+  
+  plots3[[i]] <- ggplot(df, aes(k)) + geom_tile(aes(y = sig, fill = n)) +
+    scale_fill_viridis(discrete=FALSE, limits = c(0,250)) + 
+      geom_line(data = df[df$sig == 1,], aes(y = up)) +
+      geom_line(data = df[df$sig == 1,], aes(y = lo)) +
+      ylim(c(0.3, 2)) +
+    ylab("Point estimate SD") + xlab("Degrees of freedom") +
+    theme_minimal()
+}
+
+(plots3[[1]] + plots3[[2]]) /(plots3[[3]] + plots3[[4]]) + plot_layout(guides = "collect") & theme(legend.position = 'bottom')
+```
+
+[To do - repeat above getting the constrained n and / or the upper CI n, and plot the differences, so we can show the practical implications]
+
+```{r}
+ggplot(df, aes(k)) + geom_tile(aes(y = sig, fill = n_fix - n)) +
+    scale_fill_viridis(discrete=FALSE) + #, limits = c(0,250)) + 
+      geom_line(data = df[df$sig == 1,], aes(y = up)) +
+      geom_line(data = df[df$sig == 1,], aes(y = lo)) +
+      ylim(c(0.3, 2)) +
+    ylab("Point estimate SD") + xlab("Degrees of freedom") +
+    theme_minimal()
+```
+
+For a specific estimate and interval, plot the minimax regret for each scenario for each n and highlight the optimal n and other choices.
 
 ```{r}
 sig <- 1; k <- 15
@@ -417,32 +431,32 @@ for(i in 1:nrow(params)){
   minmax_regs <- apply(regs, 1, max)
     
   # Use the point estimate
-  vals <- v(ns, pow(ns, sig), lambda, gamma)
-  vals[1] <- v(0, 0, lambda, gamma)
+  vals <- v(ns[-1], pow(ns[-1], sig), lambda, gamma)
+  vals <- c(v(0, 0, lambda, gamma), vals)
   n_fix <- ns[which.min(vals)]
   
   # Use the upper CI point, as in Browne
   n_ci <- which(pow(3:1500, up) >= 0.8)[1] + 2
         
   # Use the non-central t method of Julious
-  ns2 <- 3:1000
-  if(i == 1 | i == 2){
-    z <- (2*qt(0.8, k, qt(0.975, 2*ns2 - 2))^2)*(sig^2)/(0.3^2)
-  } else {
-    z <- (2*qt(0.8, k, qt(0.975, 2*ns2 - 2))^2)*(sig^2)/(0.3794427^2)
+  #ns2 <- 3:1000
+  #if(i == 1 | i == 2){
+  #  z <- (2*qt(0.8, k, qt(0.975, 2*ns2 - 2))^2)*(sig^2)/(0.3^2)
+  #} else {
+  #  z <- (2*qt(0.8, k, qt(0.975, 2*ns2 - 2))^2)*(sig^2)/(0.3794427^2)
     #z <- (2*qt(0.6, k, qt(0.975, 2*ns2 - 2))^2)*(sig^2)/(0.3^2)
-  }
-  n_nct <- ns2[ns2 >= z][1]
+  #}
+  #n_nct <- ns2[ns2 >= z][1]
   
   df <- data.frame(n = ns,
                    r = minmax_regs)
   
   df2 <- rbind(df[df$n == n,],
                df[df$n == n_fix,],
-               df[df$n == n_ci,],
-               df[df$n == n_nct,])
+               df[df$n == n_ci,])
+               #df[df$n == n_nct,])
   
-  df2$t <- c("Minimax", "Fixed", "Upper CI", "NCT")
+  df2$t <- c("Minimax", "Fixed", "Upper CI")
 
   plots5[[i]] <- ggplot(df, aes(n, r)) + geom_line() +
       geom_point(data = df2, aes(colour = t)) +
@@ -454,22 +468,7 @@ for(i in 1:nrow(params)){
 (plots5[[1]] + plots5[[2]]) /(plots5[[3]] + plots5[[4]]) + plot_layout(guides = "collect") & theme(legend.position = 'bottom')
 ```
 
-```{r}
-t_var <- 1; k <- 15
-pows <- NULL
-for(i in 1:1000){
-  sig <- sqrt(t_var*rchisq(1, k)/k)
-  #ns2 <- 3:500
-  #z <- (2*qt(0.8, k, qt(0.975, 2*ns2 - 2))^2)*(sig^2)/(0.3^2)
-  #n_nct <- ns2[ns2 >= z][1]
-  n_nct <- power.t.test(delta = 0.3, sd = sig, power = 0.8)$n
-  pows <- c(pows, pow(n_nct, sqrt(t_var)))
-}
-```
 
-Although NCT paper is not particularly clear, I think the method lets us find an n(s) such that the power averaged over the sampling dist of s is nominal. So, as long as we are happy with this definition of power, this does provide a way to address uncertainty in sigma. But, it does nothing in terms of value and costs. So, best to view this as an extension to the usual constrained method, for the special case of a normal endpoint, for when we have uncertainty. 
-
-The question is, should we be using their definition of power?
 
 # Superceded
 
