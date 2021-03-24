@@ -144,22 +144,334 @@ Sim study comparing methods for SSD - for different points and interval widths, 
 Sim study comparing methods for SSR. As above, but now what is the optimal n_p? And what are the resulting optimal distributions on power and total sample size / total cost?
 (Expect bigger differences here)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-# Paper appendix
-
 ## Introduction
+
+In this document we will develop applications of a value-based approach to sample size determination (SSD) when nuisance parameters are unknown. The scope is limited to SSD - we will not consider sample size re-estimation here.
+
+## t-test
+
+Consider a two-arm trial with a normal endpoint which will compare the means in each group via a t-test. We propose four example value functions
+$$
+v(n, 1-\beta)
+$$
+which define indifference curves over the space of sample sizes and powers.
+
+```{r}
+pow <- function(n, sig)
+{
+  #power.t.test(n = n, delta = 0.3, sd = sig)$power
+  1-pt(qt(0.975, 2*(n-1)), 2*(n-1), 0.3/sqrt(2*sig^2/n))
+}
+
+v <- function(n, p, lambda, gamma)
+{
+  # Value function
+  -(log(p*gamma + 1)/log(gamma + 1) - lambda*n - lambda*20*(n > 0)) #0.3365181*(n > 0))
+  # Adding a fixed penalty v(100, pow(100, 1), lambda, gamma),
+  # So now for any value < 0 we are better to not run the trial
+}
+
+n1 <- 176; sig <- 1
+pow(n1, sig)
+lambda1 <- grad(pow, n1, sig=sig)
+gamma1 <- 0.00001
+
+#n2 <- 235; sig <- 1
+n2 <- 110; sig <- 1
+pow(n2, sig)
+lambda2 <- grad(pow, n2, sig=sig)
+gamma2 <- 2
+
+params <- matrix(c(lambda1, gamma1,
+                   0.00157, gamma2,
+                   lambda2, gamma1,
+                   0.00325, gamma2), ncol = 2, byrow = T)
+
+plots <- vector("list", 4)
+for(i in 1:nrow(params)){
+  lambda <- params[i, 1]; gamma <- params[i, 2]
+  
+  df <- data.frame(n=seq(4,500,1))
+  df <- rbind(df, df)
+  df$sig <- c(rep(1, nrow(df)/2), rep(1.3*1, nrow(df)/2))
+  df$p <- pow(df$n, df$sig)
+  df$v <- v(df$n, df$p, lambda, gamma)
+  
+  df[which.min(df$v*(df$sig == 1)),]
+  
+  opt1 <- df[which.min(df$v*(df$sig == 1)),]
+  opt2 <- df[which.min(df$v*(df$sig == 1.3)),]
+  
+  gr <- expand.grid(n = seq(4, 500, l = 10),
+                    p = seq(0, 1, l = 10))
+  gr$v <- v(gr$n, gr$p, lambda, gamma)
+  
+  plots[[i]] <- ggplot(df, aes(n, p)) + geom_line(aes(colour=as.factor(sig))) +
+    geom_hline(yintercept = 0.8, linetype=2) +
+    geom_contour(data = gr, aes(z = v), alpha = 0.5, colour = cols[3]) +
+    geom_contour(data = gr, aes(z = v), breaks = c(0), colour = cols[4]) +
+    geom_point(data = df[as.numeric(row.names(rbind(opt1, opt2))), ]) +
+    ylab("Power") + xlab("Sample size") +
+    scale_colour_manual(values=cols[1:2], labels=round(c(sig, 1.3*sig), 2)) +
+    labs(colour = "SD") +
+    theme_minimal()
+}
+
+(plots[[1]] + plots[[2]]) /(plots[[3]] + plots[[4]]) + plot_layout(guides = "collect") & theme(legend.position = 'bottom')
+```
+
+This figure shows the indifference curves in each case. Power as a function of $n$ is shown for two possible values of the nuisance parameter $\sigma$ and an MCID of 0.3, and the optimal (value-maximising) sample size is highlighted for each of these. The pink line denotes the contour below which it becomes optimal to not run the trial at all due to the setup costs.
+
+The scenarios have been chosen so that the optimal design when $\sigma = 1$ corresponds to a power of 0.8 (top row) or 0.6 (bottom row). They also differ in the parameter $\gamma$ used in the power component of the value function,
+$$
+-\frac{\log([1-\beta]\gamma + 1)}{\log(\gamma + 1)},
+$$
+where $\gamma = 0.00001$ (left side) or $\gamma = 2$ (right side).
+
+For these four value scenarios, how does the optimal sample size vary with the true value of $\sigma$? How do these compare against the sample sizes obtained by the usual approach of minimising $n$ subject to a power constraint?
+
+```{r}
+plots2 <- vector("list", 4)
+fits <- vector("list", 4); lims <- NULL
+for(i in 1:nrow(params)){
+  lambda <- params[i, 1]; gamma <- params[i, 2]
+  
+  df <- data.frame(sig=seq(0.1,5,0.01))
+  df$n <- sapply(df$sig, function(x) which.min(v(3:500, pow(3:500, x), lambda, gamma)) + 2)
+  df$v <- v(df$n, pow(df$n, df$sig), lambda, gamma)
+  df$n <- df$n*(df$v < 0)
+  df$t <- "v"
+  
+  # Storing GAM approximations for later
+  fits[[i]] <- gam(n ~ s(sig), data = df[df$n > 0,])
+  lim <- df[df$n > 0, "sig"]
+  lim <- lim[length(lim)]^2
+  lims <- c(lims, lim)
+
+  df2 <- data.frame(sig=seq(0.1,5,0.01))
+  df2$n <- sapply(df$sig, function(x) which(pow(3:500, x) >= (0.8*(i %in% c(1,2)) + 0.6*(i %in% c(3,4))))[1] + 2)
+  df2$t <- "c"
+
+plots2[[i]] <- ggplot(rbind(df[,-3], df2), aes(sig, n, colour=t, linetype=t)) + geom_line() +
+  theme_minimal() +
+  ylab("Sample size") + xlab("Standard deviation") +
+  scale_colour_manual(name="Method", values=cols[1:2], labels=c("C", "V")) +
+  scale_linetype_manual(name="Method", values=c(1,2), labels=c("C", "V"))
+}
+
+(plots2[[1]] + plots2[[2]]) /(plots2[[3]] + plots2[[4]]) + plot_layout(guides = "collect") & theme(legend.position = 'bottom')
+```
+
+
+
+Now, find the sample size which minimises the maximum regret over a given SD interval. For comparison, also look at upper CI and NCT methods.
+
+First, make a list of scenarios in terms of estimated sds and their 95\% CI limits based on varying degrees of freedom / hypothetical pilot sample sizes.
+
+```{r}
+df <- expand.grid(sig = seq(0.3, 2, l = 10),
+                  k = seq(10, 100, l = 10))
+df$lo <- sqrt(df$k*df$sig^2/qchisq(0.975, df$k)) 
+df$up <- sqrt(df$k*df$sig^2/qchisq(0.025, df$k)) 
+df$n <- df$n_ci <- df$n_nct <- NA
+
+plots3 <- vector("list", 4)
+for(i in 1:nrow(params)){
+  # Now compute an n x sig matrix of values
+  lambda <- params[i,1]; gamma <- params[i, 2]
+  sigs <- seq(min(df$lo), max(df$up), l = 200)
+  ns <- c(0, 2:500)
+  
+  vs <- matrix(rep(NA, length(sigs)*length(ns)), ncol = length(sigs))
+  for(j in 1:nrow(vs)){
+    for(k in 1:ncol(vs)){
+      p <- 0
+      if(ns[j] != 0 ) p <- pow(ns[j], sigs[k])
+      vs[j, k] <- v(ns[j], p, lambda, gamma)
+    }
+  }
+  
+  for(j in 1:nrow(df)){
+    vs_sub <- vs[, sigs >= df[j, "lo"] & sigs <= df[j, "up"]]
+    opt_v <- -apply(vs_sub, 2, min)
+    regs <- t(t(vs_sub) + opt_v)
+    df$n[j] <- ns[which.min(apply(regs, 1, max))]
+    df$r[j] <- min(apply(regs, 1, max))
+    
+    # Use the point estimate
+    vals <- v(ns, pow(ns, df$sig[j]), lambda, gamma)
+    vals[1] <- v(0, 0, lambda, gamma)
+    df$n_fix[j] <- ns[which.min(vals)]
+    df$r_fix[j] <- max(regs[which(ns == df$n_fix[j]),])
+  
+    # Use the upper CI point, as in Browne
+    #df$n_ci[j] <- which(pow(3:1500, df$up[j]) >= 0.8)[1] + 2
+        
+    # Use the non-central t method of Julious
+    ns2 <- 3:1000
+    if(i == 1 | i == 2){
+      z <- (2*qt(0.8, df$k[j], qt(0.975, 2*ns2 - 2))^2)*(df$sig[j]^2)/(0.3^2)
+    } else {
+      z <- (2*qt(0.8, df$k[j], qt(0.975, 2*ns2 - 2))^2)*(df$sig[j]^2)/(0.3794427^2)
+    }
+    df$n_nct[j] <- ns2[ns2 >= z][1]
+  }
+  
+  plots3[[i]] <- ggplot(df, aes(k)) + geom_tile(aes(y = sig, fill = n)) +
+    scale_fill_viridis(discrete=FALSE, limits = c(0,250)) + 
+      geom_line(data = df[df$sig == 1,], aes(y = up)) +
+      geom_line(data = df[df$sig == 1,], aes(y = lo)) +
+      ylim(c(0.3, 2)) +
+    ylab("Point estimate SD") + xlab("Degrees of freedom") +
+    theme_minimal()
+}
+
+(plots3[[1]] + plots3[[2]]) /(plots3[[3]] + plots3[[4]]) + plot_layout(guides = "collect") & theme(legend.position = 'bottom')
+```
+
+Now, look at a specific point estimate and interval. For each scenario, plot the values of (i) the optimal n, (ii) the minimax n, and (iii) the locally optimal n at the point estimate.
+
+```{r}
+sig <- 1; k <- 30
+lo <- sqrt(k*sig^2/qchisq(0.975, k)) 
+up <- sqrt(k*sig^2/qchisq(0.025, k)) 
+
+plots4 <- vector("list", 4)
+for(i in 1:nrow(params)){
+  # Now compute an n x sig matrix of values
+  lambda <- params[i,1]; gamma <- params[i, 2]
+  sigs <- seq(0.1, 3, l = 200)
+  ns <- c(0, 2:500)
+  
+  vs <- matrix(rep(NA, length(sigs)*length(ns)), ncol = length(sigs))
+  for(j in 1:nrow(vs)){
+    for(k in 1:ncol(vs)){
+      p <- 0
+      if(ns[j] != 0 ) p <- pow(ns[j], sigs[k])
+      vs[j, k] <- v(ns[j], p, lambda, gamma)
+    }
+  }
+  
+  # Get value of optimal designs
+  opt_v_all <- -apply(vs, 2, min)
+  
+  # Get minimax design
+  vs_sub <- vs[, sigs >= lo & sigs <= up]
+  opt_v <- -apply(vs_sub, 2, min)
+  regs <- t(t(vs_sub) + opt_v)
+  n <- ns[which.min(apply(regs, 1, max))]
+  minmax_v <- -vs[which.min(apply(regs, 1, max)),]
+    
+  # Use the point estimate
+  vals <- v(ns, pow(ns, sig), lambda, gamma)
+  vals[1] <- v(0, 0, lambda, gamma)
+  n_fix <- ns[which.min(vals)]
+  fix_v <- -vs[which.min(vals),]
+  #fix_v <- -vs[20,]
+  
+  df <- data.frame(sig = rep(sigs, 3),
+                   v = c(opt_v_all, minmax_v, fix_v),
+                   t = rep(c("Local", "Minimax", "Fixed"), each = length(sigs)))
+  
+  plots4[[i]] <- ggplot(df, aes(sig, v, colour = t)) + geom_line() +
+    scale_colour_manual(name = "", values = cols) +
+    geom_vline(xintercept = c(lo, up), linetype = 2) +
+    ylab("Value") + xlab("Standard deviation") +
+    theme_minimal()
+}
+
+(plots4[[1]] + plots4[[2]]) /(plots4[[3]] + plots4[[4]]) + plot_layout(guides = "collect") & theme(legend.position = 'bottom')
+```
+
+Now, plot the minimax regret for each scenario for each n.
+
+
+```{r}
+sig <- 1; k <- 15
+lo <- sqrt(k*sig^2/qchisq(0.975, k)) 
+up <- sqrt(k*sig^2/qchisq(0.025, k)) 
+
+plots5 <- vector("list", 4)
+for(i in 1:nrow(params)){
+  # Now compute an n x sig matrix of values
+  lambda <- params[i,1]; gamma <- params[i, 2]
+  sigs <- seq(0.1, 3, l = 200)
+  ns <- c(0, 2:500)
+  
+  vs <- matrix(rep(NA, length(sigs)*length(ns)), ncol = length(sigs))
+  for(j in 1:nrow(vs)){
+    for(q in 1:ncol(vs)){
+      p <- 0
+      if(ns[j] != 0 ) p <- pow(ns[j], sigs[q])
+      vs[j, q] <- v(ns[j], p, lambda, gamma)
+    }
+  }
+  
+  # Get minimax design
+  vs_sub <- vs[, sigs >= lo & sigs <= up]
+  opt_v <- -apply(vs_sub, 2, min)
+  regs <- t(t(vs_sub) + opt_v)
+  n <- ns[which.min(apply(regs, 1, max))]
+  
+  # Minimax regret for all ns
+  minmax_regs <- apply(regs, 1, max)
+    
+  # Use the point estimate
+  vals <- v(ns, pow(ns, sig), lambda, gamma)
+  vals[1] <- v(0, 0, lambda, gamma)
+  n_fix <- ns[which.min(vals)]
+  
+  # Use the upper CI point, as in Browne
+  n_ci <- which(pow(3:1500, up) >= 0.8)[1] + 2
+        
+  # Use the non-central t method of Julious
+  ns2 <- 3:1000
+  if(i == 1 | i == 2){
+    z <- (2*qt(0.8, k, qt(0.975, 2*ns2 - 2))^2)*(sig^2)/(0.3^2)
+  } else {
+    z <- (2*qt(0.8, k, qt(0.975, 2*ns2 - 2))^2)*(sig^2)/(0.3794427^2)
+    #z <- (2*qt(0.6, k, qt(0.975, 2*ns2 - 2))^2)*(sig^2)/(0.3^2)
+  }
+  n_nct <- ns2[ns2 >= z][1]
+  
+  df <- data.frame(n = ns,
+                   r = minmax_regs)
+  
+  df2 <- rbind(df[df$n == n,],
+               df[df$n == n_fix,],
+               df[df$n == n_ci,],
+               df[df$n == n_nct,])
+  
+  df2$t <- c("Minimax", "Fixed", "Upper CI", "NCT")
+
+  plots5[[i]] <- ggplot(df, aes(n, r)) + geom_line() +
+      geom_point(data = df2, aes(colour = t)) +
+    scale_colour_manual(name = "", values = cols[c(1,3,4,5)]) +
+    ylab("Maximum regret") + xlab("Sample size") +
+    theme_minimal()
+}
+
+(plots5[[1]] + plots5[[2]]) /(plots5[[3]] + plots5[[4]]) + plot_layout(guides = "collect") & theme(legend.position = 'bottom')
+```
+
+```{r}
+t_var <- 1; k <- 15
+pows <- NULL
+for(i in 1:1000){
+  sig <- sqrt(t_var*rchisq(1, k)/k)
+  #ns2 <- 3:500
+  #z <- (2*qt(0.8, k, qt(0.975, 2*ns2 - 2))^2)*(sig^2)/(0.3^2)
+  #n_nct <- ns2[ns2 >= z][1]
+  n_nct <- power.t.test(delta = 0.3, sd = sig, power = 0.8)$n
+  pows <- c(pows, pow(n_nct, sqrt(t_var)))
+}
+```
+
+Although NCT paper is not particularly clear, I think the method lets us find an n(s) such that the power averaged over the sampling dist of s is nominal. So, as long as we are happy with this definition of power, this does provide a way to address uncertainty in sigma. But, it does nothing in terms of value and costs. So, best to view this as an extension to the usual constrained method, for the special case of a normal endpoint, for when we have uncertainty. 
+
+The question is, should we be using their definition of power?
+
+# Superceded
 
 ## Running example
 
@@ -382,312 +694,6 @@ Note that for the same lambda, the optimal designs and their values will be cons
 
 ## Example - t-test
 
-```{r}
-pow <- function(n, sig)
-{
-  #power.t.test(n = n, delta = 0.3, sd = sig)$power
-  1-pt(qt(0.975, 2*(n-1)), 2*(n-1), 0.3/sqrt(2*sig^2/n))
-}
-
-v <- function(n, p, lambda, gamma)
-{
-  # Value function
-  -(log(p*gamma + 1)/log(gamma + 1) - lambda*n - lambda*20*(n > 0)) #0.3365181*(n > 0))
-  # Adding a fixed penalty v(100, pow(100, 1), lambda, gamma),
-  # So now for any value < 0 we are better to not run the trial
-}
-
-n1 <- 176; sig <- 1
-pow(n1, sig)
-lambda1 <- grad(pow, n1, sig=sig)
-gamma1 <- 0.00001
-
-#n2 <- 235; sig <- 1
-n2 <- 110; sig <- 1
-pow(n2, sig)
-lambda2 <- grad(pow, n2, sig=sig)
-gamma2 <- 2
-
-params <- matrix(c(lambda1, gamma1,
-                   0.00157, gamma2,
-                   lambda2, gamma1,
-                   0.00325, gamma2), ncol = 2, byrow = T)
-
-plots <- vector("list", 4)
-for(i in 1:nrow(params)){
-  lambda <- params[i, 1]; gamma <- params[i, 2]
-  
-  df <- data.frame(n=seq(4,500,1))
-  df <- rbind(df, df)
-  df$sig <- c(rep(1, nrow(df)/2), rep(1.3*1, nrow(df)/2))
-  df$p <- pow(df$n, df$sig)
-  df$v <- v(df$n, df$p, lambda, gamma)
-  
-  df[which.min(df$v*(df$sig == 1)),]
-  
-  opt1 <- df[which.min(df$v*(df$sig == 1)),]
-  opt2 <- df[which.min(df$v*(df$sig == 1.3)),]
-  
-  gr <- expand.grid(n = seq(4, 500, l = 10),
-                    p = seq(0, 1, l = 10))
-  gr$v <- v(gr$n, gr$p, lambda, gamma)
-  
-  plots[[i]] <- ggplot(df, aes(n, p)) + geom_line(aes(colour=as.factor(sig))) +
-    geom_hline(yintercept = 0.8, linetype=2) +
-    geom_contour(data = gr, aes(z = v), alpha = 0.5, colour = cols[3]) +
-    geom_contour(data = gr, aes(z = v), breaks = c(0), colour = cols[4]) +
-    geom_point(data = df[as.numeric(row.names(rbind(opt1, opt2))), ]) +
-    ylab("Power") + xlab("Sample size") +
-    scale_colour_manual(values=cols[1:2], labels=round(c(sig, 1.3*sig), 2)) +
-    labs(colour = "SD") +
-    theme_minimal()
-}
-
-(plots[[1]] + plots[[2]]) /(plots[[3]] + plots[[4]]) + plot_layout(guides = "collect") & theme(legend.position = 'bottom')
-```
-
-For these four value scenarios, show how the true optimal n varies with the SD and compare against the constrained approach.
-
-```{r}
-plots2 <- vector("list", 4)
-fits <- vector("list", 4); lims <- NULL
-for(i in 1:nrow(params)){
-  lambda <- params[i, 1]; gamma <- params[i, 2]
-  
-  df <- data.frame(sig=seq(0.1,5,0.01))
-  df$n <- sapply(df$sig, function(x) which.min(v(3:500, pow(3:500, x), lambda, gamma)) + 2)
-  df$v <- v(df$n, pow(df$n, df$sig), lambda, gamma)
-  df$n <- df$n*(df$v < 0)
-  df$t <- "v"
-  
-  # Storing GAM approximations for later
-  fits[[i]] <- gam(n ~ s(sig), data = df[df$n > 0,])
-  lim <- df[df$n > 0, "sig"]
-  lim <- lim[length(lim)]^2
-  lims <- c(lims, lim)
-
-  df2 <- data.frame(sig=seq(0.1,5,0.01))
-  df2$n <- sapply(df$sig, function(x) which(pow(3:500, x) >= 0.8)[1] + 2)
-  df2$t <- "c"
-
-plots2[[i]] <- ggplot(rbind(df[,-3], df2), aes(sig, n, colour=t, linetype=t)) + geom_line() +
-  theme_minimal() +
-  ylab("Sample size") + xlab("Standard deviation") +
-  scale_colour_manual(name="Method", values=cols[1:2], labels=c("C", "V")) +
-  scale_linetype_manual(name="Method", values=c(1,2), labels=c("C", "V"))
-}
-
-(plots2[[1]] + plots2[[2]]) /(plots2[[3]] + plots2[[4]]) + plot_layout(guides = "collect") & theme(legend.position = 'bottom')
-```
-
-In all scenarios we see that sample size is fully or almost increasing, before we hit an SD that is so high the value of an optimal trial does not justify the set-up costs. It is interesting to see that for the linear cases, the optimal designs are not far off from those obtained by the constrained method.
-
-Now, find the sample size which minimises the maximum regret over a given SD interval. For comparison, also look at upper CI and NCT methods.
-
-First, make a list of scenarios in terms of estimated sds and their 95\% CI limits based on varying degrees of freedom / hypothetical pilot sample sizes.
-
-```{r}
-df <- expand.grid(sig = seq(0.3, 2, l = 10),
-                  k = seq(10, 100, l = 10))
-df$lo <- sqrt(df$k*df$sig^2/qchisq(0.975, df$k)) 
-df$up <- sqrt(df$k*df$sig^2/qchisq(0.025, df$k)) 
-df$n <- df$n_ci <- df$n_nct <- NA
-
-plots3 <- vector("list", 4)
-for(i in 1:nrow(params)){
-  # Now compute an n x sig matrix of values
-  lambda <- params[i,1]; gamma <- params[i, 2]
-  sigs <- seq(min(df$lo), max(df$up), l = 200)
-  ns <- c(0, 2:500)
-  
-  vs <- matrix(rep(NA, length(sigs)*length(ns)), ncol = length(sigs))
-  for(j in 1:nrow(vs)){
-    for(k in 1:ncol(vs)){
-      p <- 0
-      if(ns[j] != 0 ) p <- pow(ns[j], sigs[k])
-      vs[j, k] <- v(ns[j], p, lambda, gamma)
-    }
-  }
-  
-  for(j in 1:nrow(df)){
-    vs_sub <- vs[, sigs >= df[j, "lo"] & sigs <= df[j, "up"]]
-    opt_v <- -apply(vs_sub, 2, min)
-    regs <- t(t(vs_sub) + opt_v)
-    df$n[j] <- ns[which.min(apply(regs, 1, max))]
-    df$r[j] <- min(apply(regs, 1, max))
-    
-    # Use the point estimate
-    vals <- v(ns, pow(ns, df$sig[j]), lambda, gamma)
-    vals[1] <- v(0, 0, lambda, gamma)
-    df$n_fix[j] <- ns[which.min(vals)]
-    df$r_fix[j] <- max(regs[which(ns == df$n_fix[j]),])
-  
-    # Use the upper CI point, as in Browne
-    #df$n_ci[j] <- which(pow(3:1500, df$up[j]) >= 0.8)[1] + 2
-        
-    # Use the non-central t method of Julious
-    ns2 <- 3:1000
-    if(i == 1 | i == 2){
-      z <- (2*qt(0.8, df$k[j], qt(0.975, 2*ns2 - 2))^2)*(df$sig[j]^2)/(0.3^2)
-    } else {
-      z <- (2*qt(0.8, df$k[j], qt(0.975, 2*ns2 - 2))^2)*(df$sig[j]^2)/(0.3794427^2)
-    }
-    df$n_nct[j] <- ns2[ns2 >= z][1]
-  }
-  
-  plots3[[i]] <- ggplot(df, aes(k)) + geom_tile(aes(y = sig, fill = n)) +
-    scale_fill_viridis(discrete=FALSE, limits = c(0,250)) + 
-      geom_line(data = df[df$sig == 1,], aes(y = up)) +
-      geom_line(data = df[df$sig == 1,], aes(y = lo)) +
-      ylim(c(0.3, 2)) +
-    ylab("Point estimate SD") + xlab("Degrees of freedom") +
-    theme_minimal()
-}
-
-(plots3[[1]] + plots3[[2]]) /(plots3[[3]] + plots3[[4]]) + plot_layout(guides = "collect") & theme(legend.position = 'bottom')
-```
-
-Now, look at a specific point estimate and interval. For each scenario, plot the values of (i) the optimal n, (ii) the minimax n, and (iii) the locally optimal n at the point estimate.
-
-```{r}
-sig <- 1; k <- 30
-lo <- sqrt(k*sig^2/qchisq(0.975, k)) 
-up <- sqrt(k*sig^2/qchisq(0.025, k)) 
-
-plots4 <- vector("list", 4)
-for(i in 1:nrow(params)){
-  # Now compute an n x sig matrix of values
-  lambda <- params[i,1]; gamma <- params[i, 2]
-  sigs <- seq(0.1, 3, l = 200)
-  ns <- c(0, 2:500)
-  
-  vs <- matrix(rep(NA, length(sigs)*length(ns)), ncol = length(sigs))
-  for(j in 1:nrow(vs)){
-    for(k in 1:ncol(vs)){
-      p <- 0
-      if(ns[j] != 0 ) p <- pow(ns[j], sigs[k])
-      vs[j, k] <- v(ns[j], p, lambda, gamma)
-    }
-  }
-  
-  # Get value of optimal designs
-  opt_v_all <- -apply(vs, 2, min)
-  
-  # Get minimax design
-  vs_sub <- vs[, sigs >= lo & sigs <= up]
-  opt_v <- -apply(vs_sub, 2, min)
-  regs <- t(t(vs_sub) + opt_v)
-  n <- ns[which.min(apply(regs, 1, max))]
-  minmax_v <- -vs[which.min(apply(regs, 1, max)),]
-    
-  # Use the point estimate
-  vals <- v(ns, pow(ns, sig), lambda, gamma)
-  vals[1] <- v(0, 0, lambda, gamma)
-  n_fix <- ns[which.min(vals)]
-  fix_v <- -vs[which.min(vals),]
-  #fix_v <- -vs[20,]
-  
-  df <- data.frame(sig = rep(sigs, 3),
-                   v = c(opt_v_all, minmax_v, fix_v),
-                   t = rep(c("Local", "Minimax", "Fixed"), each = length(sigs)))
-  
-  plots4[[i]] <- ggplot(df, aes(sig, v, colour = t)) + geom_line() +
-    scale_colour_manual(name = "", values = cols) +
-    geom_vline(xintercept = c(lo, up), linetype = 2) +
-    ylab("Value") + xlab("Standard deviation") +
-    theme_minimal()
-}
-
-(plots4[[1]] + plots4[[2]]) /(plots4[[3]] + plots4[[4]]) + plot_layout(guides = "collect") & theme(legend.position = 'bottom')
-```
-
-Now, plot the minimax regret for each scenario for each n.
-
-
-```{r}
-sig <- 1; k <- 15
-lo <- sqrt(k*sig^2/qchisq(0.975, k)) 
-up <- sqrt(k*sig^2/qchisq(0.025, k)) 
-
-plots5 <- vector("list", 4)
-for(i in 1:nrow(params)){
-  # Now compute an n x sig matrix of values
-  lambda <- params[i,1]; gamma <- params[i, 2]
-  sigs <- seq(0.1, 3, l = 200)
-  ns <- c(0, 2:500)
-  
-  vs <- matrix(rep(NA, length(sigs)*length(ns)), ncol = length(sigs))
-  for(j in 1:nrow(vs)){
-    for(q in 1:ncol(vs)){
-      p <- 0
-      if(ns[j] != 0 ) p <- pow(ns[j], sigs[q])
-      vs[j, q] <- v(ns[j], p, lambda, gamma)
-    }
-  }
-  
-  # Get minimax design
-  vs_sub <- vs[, sigs >= lo & sigs <= up]
-  opt_v <- -apply(vs_sub, 2, min)
-  regs <- t(t(vs_sub) + opt_v)
-  n <- ns[which.min(apply(regs, 1, max))]
-  
-  # Minimax regret for all ns
-  minmax_regs <- apply(regs, 1, max)
-    
-  # Use the point estimate
-  vals <- v(ns, pow(ns, sig), lambda, gamma)
-  vals[1] <- v(0, 0, lambda, gamma)
-  n_fix <- ns[which.min(vals)]
-  
-  # Use the upper CI point, as in Browne
-  n_ci <- which(pow(3:1500, up) >= 0.8)[1] + 2
-        
-  # Use the non-central t method of Julious
-  ns2 <- 3:1000
-  if(i == 1 | i == 2){
-    z <- (2*qt(0.8, k, qt(0.975, 2*ns2 - 2))^2)*(sig^2)/(0.3^2)
-  } else {
-    z <- (2*qt(0.8, k, qt(0.975, 2*ns2 - 2))^2)*(sig^2)/(0.3794427^2)
-    #z <- (2*qt(0.6, k, qt(0.975, 2*ns2 - 2))^2)*(sig^2)/(0.3^2)
-  }
-  n_nct <- ns2[ns2 >= z][1]
-  
-  df <- data.frame(n = ns,
-                   r = minmax_regs)
-  
-  df2 <- rbind(df[df$n == n,],
-               df[df$n == n_fix,],
-               df[df$n == n_ci,],
-               df[df$n == n_nct,])
-  
-  df2$t <- c("Minimax", "Fixed", "Upper CI", "NCT")
-
-  plots5[[i]] <- ggplot(df, aes(n, r)) + geom_line() +
-      geom_point(data = df2, aes(colour = t)) +
-    scale_colour_manual(name = "", values = cols[c(1,3,4,5)]) +
-    ylab("Maximum regret") + xlab("Sample size") +
-    theme_minimal()
-}
-
-(plots5[[1]] + plots5[[2]]) /(plots5[[3]] + plots5[[4]]) + plot_layout(guides = "collect") & theme(legend.position = 'bottom')
-```
-
-```{r}
-t_var <- 1; k <- 15
-pows <- NULL
-for(i in 1:1000){
-  sig <- sqrt(t_var*rchisq(1, k)/k)
-  #ns2 <- 3:500
-  #z <- (2*qt(0.8, k, qt(0.975, 2*ns2 - 2))^2)*(sig^2)/(0.3^2)
-  #n_nct <- ns2[ns2 >= z][1]
-  n_nct <- power.t.test(delta = 0.3, sd = sig, power = 0.8)$n
-  pows <- c(pows, pow(n_nct, sqrt(t_var)))
-}
-```
-
-Although NCT paper is not particularly clear, I think the method lets us find an n(s) such that the power averaged over the sampling dist of s is nominal. So, as long as we are happy with this definition of power, this does provide a way to address uncertainty in sigma. But, it does nothing in terms of value and costs. So, best to view this as an extension to the usual constrained method, for the special case of a normal endpoint, for when we have uncertainty. 
-
-The question is, should we be using their definition of power?
 
 ```{r}
 regret <- function(sig, n, lambda, gamma)
@@ -1688,8 +1694,6 @@ df$o <- apply(df, 1, f)
 
 ggplot(df, aes(sig, lambda, z=o)) + stat_contour()
 ```
-
-# Superceded
 
 ## Application - cluster randomised trials
 
