@@ -1,0 +1,229 @@
+\begin{thebibliography}{10}
+\providecommand{\url}[1]{\texttt{#1}}
+\providecommand{\urlprefix}{URL }
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{DOI:\discretionary{}{}{}#1}\else
+  \providecommand{\doi}{DOI:\discretionary{}{}{}\begingroup
+  \urlstyle{rm}\Url}\fi
+\providecommand{\eprint}[2][]{\url{#2}}
+
+\bibitem{Browne1995}
+Browne RH.
+\newblock On the use of a pilot sample for sample size determination.
+\newblock \emph{Statistics in Medicine} 1995; 14(17): 1933--1940.
+\newblock \doi{10.1002/sim.4780141709}.
+\newblock \urlprefix\url{http://dx.doi.org/10.1002/sim.4780141709}.
+
+\bibitem{Gould2001}
+Gould AL.
+\newblock Sample size re-estimation: recent developments and practical
+  considerations.
+\newblock \emph{Statist Med} 2001; 20(17-18): 2625--2643.
+\newblock \doi{10.1002/sim.733}.
+\newblock \urlprefix\url{http://dx.doi.org/10.1002/sim.733}.
+
+\bibitem{Friede2006}
+Friede T and Kieser M.
+\newblock Sample size recalculation in internal pilot study designs: A review.
+\newblock \emph{Biom J} 2006; 48(4): 537--555.
+\newblock \doi{10.1002/bimj.200510238}.
+\newblock \urlprefix\url{http://dx.doi.org/10.1002/bimj.200510238}.
+
+\bibitem{Teare2014}
+Teare M, Dimairo M, Shephard N et~al.
+\newblock Sample size requirements to estimate key design parameters from
+  external pilot randomised controlled trials: a simulation study.
+\newblock \emph{Trials} 2014; 15(1): 264.
+\newblock \doi{10.1186/1745-6215-15-264}.
+\newblock \urlprefix\url{http://www.trialsjournal.com/content/15/1/264}.
+
+\bibitem{Whitehead2015}
+Whitehead AL, Julious SA, Cooper CL et~al.
+\newblock Estimating the sample size for a pilot randomised trial to minimise
+  the overall trial sample size for the external pilot and main trial for a
+  continuous outcome variable.
+\newblock \emph{Statistical Methods in Medical Research} 2015;
+  \doi{10.1177/0962280215588241}.
+\newblock
+  \urlprefix\url{http://smm.sagepub.com/content/early/2015/06/27/0962280215588241.abstract}.
+\newblock
+  \eprint{http://smm.sagepub.com/content/early/2015/06/27/0962280215588241.full.pdf+html}.
+
+\bibitem{Lake2002}
+Lake S, Kammann E, Klar N et~al.
+\newblock Sample size re-estimation in cluster randomization trials.
+\newblock \emph{Statistics in Medicine} 2002; 21(10): 1337--1350.
+\newblock \doi{10.1002/sim.1121}.
+\newblock \urlprefix\url{http://dx.doi.org/10.1002/sim.1121}.
+
+\bibitem{Eldridge2015}
+Eldridge SM, Costelloe CE, Kahan BC et~al.
+\newblock How big should the pilot study for my cluster randomised trial be?
+\newblock \emph{Statistical Methods in Medical Research} 2015;
+  \doi{10.1177/0962280215588242}.
+\newblock
+  \urlprefix\url{http://smm.sagepub.com/content/early/2015/06/12/0962280215588242.abstract}.
+\newblock
+  \eprint{http://smm.sagepub.com/content/early/2015/06/12/0962280215588242.full.pdf+html}.
+
+\bibitem{Cook2018}
+Cook JA, Julious SA, Sones W et~al.
+\newblock {DELTA}2 guidance on choosing the target difference and undertaking
+  and reporting the sample size calculation for a randomised controlled trial.
+\newblock \emph{Trials} 2018; 19(1).
+\newblock \doi{10.1186/s13063-018-2884-0}.
+
+\bibitem{Eldridge2016}
+Eldridge SM, Lancaster GA, Campbell MJ et~al.
+\newblock Defining feasibility and pilot studies in preparation for randomised
+  controlled trials: Development of a conceptual framework.
+\newblock \emph{{PLOS} {ONE}} 2016; 11(3): e0150205.
+\newblock \doi{10.1371/journal.pone.0150205}.
+\newblock \urlprefix\url{http://dx.doi.org/10.1371/journal.pone.0150205}.
+
+\bibitem{Schulz2005}
+Schulz KF and Grimes DA.
+\newblock Sample size calculations in randomised trials: mandatory and
+  mystical.
+\newblock \emph{The Lancet} 2005; 365(9467): 1348--1353.
+\newblock \doi{10.1016/s0140-6736(05)61034-3}.
+\newblock \urlprefix\url{http://dx.doi.org/10.1016/S0140-6736(05)61034-3}.
+
+\bibitem{Hooper2016}
+Hooper R, Teerenstra S, de~Hoop E et~al.
+\newblock Sample size calculation for stepped wedge and other longitudinal
+  cluster randomised trials.
+\newblock \emph{Statistics in Medicine} 2016; 35(26): 4718--4728.
+\newblock \doi{10.1002/sim.7028}.
+\newblock \urlprefix\url{http://dx.doi.org/10.1002/sim.7028}.
+
+\bibitem{}
+S G and AP D.
+\newblock Defining and identifying the effect of treatment on the treated.
+\newblock In Illari P, Russo F and Williamson J (eds.) \emph{Causality in the
+  Sciences}. Oxford Univ. Pre, 2011.
+\newblock pp. 728 -- 49.
+\newblock
+  \urlprefix\url{http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.370.9724&rep=rep1&type=pdf}.
+
+\bibitem{Bacchetti2019}
+Bacchetti P.
+\newblock The other arbitrary cutoff.
+\newblock \emph{The American Statistician} 2019; :
+  1--3\doi{10.1080/00031305.2019.1654920}.
+
+\bibitem{French2000}
+French S and Insua DR.
+\newblock \emph{Statistical Decision Theory}.
+\newblock Number~9 in Kendall's Library of Statistics, Oxford University Press,
+  2000.
+
+\bibitem{Lin2004}
+Lin Y and Shih WJ.
+\newblock Adaptive two-stage designs for single-arm phase {IIA} cancer clinical
+  trials.
+\newblock \emph{Biometrics} 2004; 60(2): 482--490.
+\newblock \doi{10.1111/j.0006-341x.2004.00193.x}.
+
+\bibitem{Kim2017}
+Kim S and Wong WK.
+\newblock Extended two-stage adaptive designs with three target responses for
+  phase {II} clinical trials.
+\newblock \emph{Statistical Methods in Medical Research} 2017; 27(12):
+  3628--3642.
+\newblock \doi{10.1177/0962280217709817}.
+
+\bibitem{Halpern2002}
+Halpern SD.
+\newblock The continuing unethical conduct of underpowered clinical trials.
+\newblock \emph{{JAMA}} 2002; 288(3): 358.
+\newblock \doi{10.1001/jama.288.3.358}.
+
+\bibitem{Lilford2002}
+Lilford RJ.
+\newblock The ethics of underpowered clinical trials.
+\newblock \emph{JAMA} 2002; 288(17): 2118--2119.
+\newblock \doi{10.1001/jama.288.17.2118}.
+\newblock \urlprefix\url{https://doi.org/10.1001/jama.288.17.2118}.
+\newblock
+  \eprint{https://jamanetwork.com/journals/jama/articlepdf/1032093/jlt1106.pdf}.
+
+\bibitem{Bacchetti2005a}
+Bacchetti P, Wolf LE, Segal MR et~al.
+\newblock Ethics and sample size.
+\newblock \emph{American Journal of Epidemiology} 2005; 161.
+\newblock \doi{10.1093/aje/kwi014}.
+\newblock \urlprefix\url{https://doi.org/10.1093/aje/kwi014}.
+
+\bibitem{Bacchetti2005}
+Bacchetti P, Wolf LE, Segal MR et~al.
+\newblock Bacchetti et al. respond to ``ethics and sample size - another
+  view''.
+\newblock \emph{American Journal of Epidemiology} 2005; 161.
+\newblock \doi{10.1093/aje/kwi016}.
+\newblock \urlprefix\url{https://doi.org/10.1093/aje/kwi016}.
+
+\bibitem{Norman2012}
+Norman G, Monteiro S and Salama S.
+\newblock Sample size calculations: should the emperor’s clothes be off the
+  peg or made to measure?
+\newblock \emph{BMJ} 2012; \doi{10.1136/bmj.e5278}.
+
+\bibitem{Edwards1997}
+Edwards SJL, Lilford RJ, Braunholtz D et~al.
+\newblock Why “underpowered” trials are not necessarily unethical.
+\newblock \emph{The Lancet} 1997; 350: 804--07.
+\newblock \doi{10.1016/S0140-6736(97)02290-3}.
+\newblock \urlprefix\url{https://doi.org/10.1016/S0140-6736(97)02290-3}.
+
+\bibitem{Girling2007}
+Girling AJ, Lilford RJ, Braunholtz DA et~al.
+\newblock Sample-size calculations for trials that inform individual treatment
+  decisions: a ‘true-choice’ approach.
+\newblock \emph{Clinical Trials} 2007; 4(1): 15--24.
+\newblock \doi{10.1177/1740774506075872}.
+\newblock \urlprefix\url{https://doi.org/10.1177/1740774506075872}.
+\newblock PMID: 17327242, \eprint{https://doi.org/10.1177/1740774506075872}.
+
+\bibitem{Claxton1999}
+Claxton K.
+\newblock The irrelevance of inference: a decision-making approach to the
+  stochastic evaluation of health care technologies.
+\newblock \emph{Journal of Health Economics} 1999; 18(3): 341 -- 364.
+\newblock \doi{https://doi.org/10.1016/S0167-6296(98)00039-3}.
+\newblock
+  \urlprefix\url{http://www.sciencedirect.com/science/article/pii/S0167629698000393}.
+
+\bibitem{Grayling2018}
+Grayling MJ, Mander AP and Wason JMS.
+\newblock Blinded and unblinded sample size reestimation procedures for
+  stepped-wedge cluster randomized trials.
+\newblock \emph{Biometrical Journal} 2018; 60(5): 903--916.
+\newblock \doi{10.1002/bimj.201700125}.
+\newblock
+  \urlprefix\url{https://onlinelibrary.wiley.com/doi/abs/10.1002/bimj.201700125}.
+\newblock
+  \eprint{https://onlinelibrary.wiley.com/doi/pdf/10.1002/bimj.201700125}.
+
+\bibitem{Altman1980}
+Altman DG.
+\newblock Statistics and ethics in medical research: Iii how large a sample?
+\newblock \emph{The British Medical Journal} 1980; 281(6251): 1336--1338.
+\newblock \urlprefix\url{http://www.jstor.org/stable/25442095}.
+
+\bibitem{DeMartini2010}
+De~Martini D.
+\newblock Conservative sample size estimation in nonparametrics.
+\newblock \emph{Journal of Biopharmaceutical Statistics} 2010; 21(1): 24--41.
+\newblock \doi{10.1080/10543400903453343}.
+\newblock \urlprefix\url{https://doi.org/10.1080/10543400903453343}.
+\newblock \eprint{https://doi.org/10.1080/10543400903453343}.
+
+\bibitem{Bakker2020}
+Bakker M, Veldkamp CLS, van~den Akker OR et~al.
+\newblock Recommendations in pre-registrations and internal review board
+  proposals promote formal power analyses but do not increase sample size.
+\newblock \emph{{PLOS} {ONE}} 2020; 15(7): e0236079.
+\newblock \doi{10.1371/journal.pone.0236079}.
+
+\end{thebibliography}

@@ -3,7 +3,6 @@ title: "Robust, value-based trial design when nuisance parameters are unknown"
 author: "D. T. Wilson"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output: html_document
-runtime: shiny
 ---
 
 ```{r setup, include=FALSE}
@@ -16,9 +15,147 @@ require(viridis)
 require(gganimate)
 require(transformr)
 require(magick)
+require(patchwork)
+require(statmod)
+require(reshape2)
+require(mgcv)
 require(RColorBrewer)
 cols <- brewer.pal(8, "Dark2") 
 ```
+
+
+## Non-lienar power value
+
+Assuming a linear single attribute n, and assuming that the rate of substitution depends on $\beta$ but not on $n$ (so, the amount of $n$ we will pay to improve $\beta$ does not depend on $n$), a signle attribute value function for $\beta$ will complete our specification.
+
+What can we say, in general, about $v(\beta)$? We can surely say that it plateaus as $\beta$ tends to 0, since by that point decreasing $\beta$ will only give us improvements in the power to detect an effect very close to the null. 
+
+We could argue value will actually start to decrease, if we are to strictly follow the test results, since as $\beta$ tends to 0 we will progress even for effects very close to the null. Counter argument is that if we got a very precise estimate of a small effect we would not progress; but that implies a different test procedure and so different error rates.
+
+At the other end, starting with $\beta = 1- \alpha$, do we expect value to be increasing at a decreasing rate? One potential metric which might be helpful is the integral of the power function beyond the null and up to some maximum effect - equivalently, the average power over a uniform distribution of treatment effects.
+
+```{r}
+pow <- function(mu, sd)
+{
+  power.t.test(n = 200, delta = mu, sd = sd)$pow
+}
+
+z <- integrate(pow, lower=0, upper = 5,
+          sd = 1)
+
+df <- data.frame(sd = seq(0.1, 5, 0.01))
+df$p <- sapply(df$sd, function(x) pow(0.3, x))
+df$v <- sapply(df$sd, function(x) integrate(pow, lower=0, upper = 5, sd = x)$value)
+
+plot(df$p, df$v)
+
+df$r <- 1
+df$r[1:490] <- df$v[2:491] - df$v[1:490]
+```
+So we can say that value of power is monotonic increasing, and that its derivative is monotonic decreasing at least up to very large powers (say, 0.95).
+
+To get the value function, we need to elicit the rate at which we would `pay' for more power given we already have $1 - \beta$, for different values of $1 - \beta$. One way to do that is to vary hypothetical power functions (by altering sd) and find the function where the sample size with $1 - \beta$ is optimal. The sample size which achieves this is irrelevant - the same rate of substitution will apply for all $n$.
+
+```{r}
+v <- function(x, lambda, delta)
+{
+  log(x[,2]*delta + 1)/log(delta+1) - lambda*x[,1]
+}
+
+l <- 0.0009; d <- 20
+l <- 0.0023; d <- 0.001
+l <- 0.0013; d <- 0.001
+
+df <- expand.grid(n = 2:400,
+                  p = seq(0,1,0.01))
+df$v <- v(df, lambda = l, delta = d)
+
+opt <- NULL
+for(sd in seq(0.2,5,0.1)){
+  z <- cbind(2:400, power.t.test(n = 2:400, delta = 0.3, sd = sd)$pow)
+  opt <- rbind(opt, z[which.max(v(z, l, d)),])
+}
+
+plot(seq(0.2,5,0.1), opt[,1])
+
+ggplot(df, aes(n, p)) + geom_contour(aes(z = v)) +
+  geom_point(data = data.frame(n = opt[,1], p = opt[,2]))
+```
+i) Value
+
+We can characterise trial design decisions as balancing the cost of sampling against the benefits of precise estimates or, more typically, power to detect an MCID. We generally solve this bi-objective problem by imposing a power constraint.
+
+When faced with a decision like this (under certainty), one approach is to define a function $V$ which articulates our preferences over the attributes $n$ and $\beta$. Solving a specific problem would then calculate $v$ for all the possible pairs and choose that with the largest $v$. The existence of $v$ follows from an assumption of a weak ordering on the attribute space.
+
+One reason we might not want to do this is that it solves a bigger problem than the one we are interested in. If we elicit $v$ then we can solve any SSD problem in this setting (i.e. same clinical area and MCID). In practice, we only need to look at one specific power curve (conditioning on $\sigma$). So why bother?
+
+The issue is that $\sigma$ is not known, but just an estimate. To deal with uncertainty in $\sigma$, we need $v$ to make sure our decision making is coherent / consistent.
+
+Proposal of $v$ structure and therefore elicitation - linear in n; marginal trade-offs depend on $\beta$ but not $n$; can elicit by asking for some hypothetical optimal designs. 
+
+ii) SSD
+
+Suppose we have an estimate and uncertainty interval for $\sigma$ which has come from a previous study. We know what the locally optimal design is for any true $\sigma$. A (frequentist) decision-theoretic approach to dealing with the uncertainty is to choose the $n$ with the best worst-case outcome over the interval - minimax. We define qulaity here not by value itself, but by regret - the difference in value between the proposed desgin and the locally optimal design.
+
+iii) SSR
+
+Regret is clearly minimised when the estimate is true, and the uncertainty interval tends to 0. So, we might want to consider producing a new and more precise estimate via a pilot to help minimise the worst case regret of the optimal n. This pilot could be external or internal. We then need to decide how large the pilot should be, given its costs (which are sampling in external pilots, and alpha spending [and costs of interim stops] in internal pilots).
+
+Given the algorithm for choosing $n$ based on the pilot estimate, we now have a distribution on $n$ and therefore $v$ for any pilot samples size. To choose between these distributions we can look at $E[v]$, which effectively assumes we are risk-neutral. 
+
+To do this, we will need to augment $v$. For an external pilot, we will need to include cost of pilot sampling (which might be different to main sampling), and pilot set-up costs.
+
+Now have, for every pilot n, a range of expected values over true $\sigma$. Similar to SSD, we then get the locally optimal pilots and then choose pilot n based on minimax regret of expected value over the interval.
+
+iv) Illustration and evaluation
+
+Focus on the simple two-sample t-test here.
+
+For SSD, we can compare against Julious2006 which was shown in Shi2020 to be a good (best?) method for the case of a continuous endpoint. Might also want to use the adjusted CI approach of Browne. And compare against using just the point estimate.
+
+For SSR, compare with Whitehead2015 who extended the NCT approach to SSR. Their paper is not very clear. They suggest choosing the pilot n to minimise the total n, but base this on a fixed main n following from the initial estimate of $\sigma$. That is, they don't account for the random main n. This may or may not correspond to the expected n. They do go on to look at the distribution of main power, which seems to back up their approach as the expected power is nominal. So they basically use just the initial point estimate to design the pilot.
+
+Want to do all this for different value parametrisations. four scenarios crossing the two params, so we have different trade offs and also linear / non-linear in power. Have all agree on the same locally opt design conditional on point estimate.
+
+May want to look at different effect sizes - report only if qualitative conclusions change.
+
+v) Extensions
+
+TO show how the general framework can easily apply to other problems, look at e.g. a cRCT with random cluster sizes. For some example initial estimates and uncertainties, find the optimal pilot, and for a simulated pilot data example show how that determines optimal main n. Outline any difficulties, e.g. computational.
+
+vi) Discussion
+
+How does $v$ based approach compare against standard SSD? Latter only makes sense if there is a threshold of power where quality jumps up, but no reason to think this holds. In practice, the standard approach is not actually used. Instead, a value based approach is done implicitly by adjusting the MCID to get a "feasible" sample size. So this proposal is not that radical, and by doing things explicitly we should be able to do better.
+
+Elicitation in practice might be tricky. In particular, who's values are we eliciting? The team writing the proposal? The funder who makes the decision? Or even the patient who might be enrolled? How to reconcile different stakeholders having different values?
+
+We focus on estimating $\sigma$. This is consistent with arguments against using a pilot estimate of the effect as a basis for future sample size calcs. One way to extend would be to add other points where power is calculated to $v$. In the limit, we would have an integral of a function which weights by value. These weights will come from considerations of both the impact and likelihood of a significant result. We might arrive at it by splitting these into defining a prior and a utility function, and then find ourselves in a fully Bayesian decision-theoretic framework. This would also let us deal with $\sigma$ in a probabilistic sense, and make decisions based on expected utility over all uncertainties - parameter values and pilot sampling.
+
+There are lots of reasons to run a pilot, beyond estimating $\sigma$. We could extend the method by including some which directly relate to power - see WP1.1. This extra value could also be taken into account in terms of the cost of the pilot - e.g. saying that the first 30 patients are free, since we will be using that for other feasibility objectives.
+
+To do -
+Two sample t test problem. 
+Implement methods for choosing n based on estimate and interval - ours, NCT, upper CI.
+Implement methods for choosing pilot n based on initial estimate and interval.
+Methods to be flexible in terms of intervals, treatment effect, and two value parameters.
+Special case on known $\sigma$
+Sim study comparing methods for SSD - for different points and interval widths, what is the optimal n? Are the methods meaningfully different? How does the relationship change with effect size? Are some value functions closer to standard methods than others?
+(Expect differences not to be massive here, since value params chosen to agree with standard methods).
+Sim study comparing methods for SSR. As above, but now what is the optimal n_p? And what are the resulting optimal distributions on power and total sample size / total cost?
+(Expect bigger differences here)
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 # Paper appendix
 
@@ -243,9 +380,804 @@ A key question now is - how sensitive is this optimal fixed design to the choice
 
 Note that for the same lambda, the optimal designs and their values will be constant. As we change the fixed sample size, we change the value of sd for which the fixed design is also the optimal. We see that as this sd value reduces, the fixed value curve becomes more discrepant. In the above example, if we thought an sd of 0.7 was most likely but used the same lambda, we would get a trial of 95% power and n=145. But when we compare a fixed design of n=145 against the optimal the largest difference is around 0.127 - much larger than the 0.05 before. So our approach looks like it won't work well if the plausable sd values correspond with a very high power. In conrast, if lambda is the same but we think the sd is higher at 1.5, the optimal design is n=345 (giving power 75%) and as a fixed design this is very robust around sd=1.5. So broadly speaking, the lambda gives the optimal designs and the maximum sd for which a trial can be considered, and a fixed design approach works better the closer our plausable sd rage is to that maximum (or equivalently, the lower the power of the locally optimal design at the best guess). 
 
-## Example - cluster RCT
+## Example - t-test
 
-One thing we can extend to is multiple design parameters. This has run in to trouble before when we couldn't find a similar maximum "robust" design, but if we just do as above and compare fixed and optimal designs then the extension may work.
+```{r}
+pow <- function(n, sig)
+{
+  #power.t.test(n = n, delta = 0.3, sd = sig)$power
+  1-pt(qt(0.975, 2*(n-1)), 2*(n-1), 0.3/sqrt(2*sig^2/n))
+}
+
+v <- function(n, p, lambda, gamma)
+{
+  # Value function
+  -(log(p*gamma + 1)/log(gamma + 1) - lambda*n - lambda*20*(n > 0)) #0.3365181*(n > 0))
+  # Adding a fixed penalty v(100, pow(100, 1), lambda, gamma),
+  # So now for any value < 0 we are better to not run the trial
+}
+
+n1 <- 176; sig <- 1
+pow(n1, sig)
+lambda1 <- grad(pow, n1, sig=sig)
+gamma1 <- 0.00001
+
+#n2 <- 235; sig <- 1
+n2 <- 110; sig <- 1
+pow(n2, sig)
+lambda2 <- grad(pow, n2, sig=sig)
+gamma2 <- 2
+
+params <- matrix(c(lambda1, gamma1,
+                   0.00157, gamma2,
+                   lambda2, gamma1,
+                   0.00325, gamma2), ncol = 2, byrow = T)
+
+plots <- vector("list", 4)
+for(i in 1:nrow(params)){
+  lambda <- params[i, 1]; gamma <- params[i, 2]
+  
+  df <- data.frame(n=seq(4,500,1))
+  df <- rbind(df, df)
+  df$sig <- c(rep(1, nrow(df)/2), rep(1.3*1, nrow(df)/2))
+  df$p <- pow(df$n, df$sig)
+  df$v <- v(df$n, df$p, lambda, gamma)
+  
+  df[which.min(df$v*(df$sig == 1)),]
+  
+  opt1 <- df[which.min(df$v*(df$sig == 1)),]
+  opt2 <- df[which.min(df$v*(df$sig == 1.3)),]
+  
+  gr <- expand.grid(n = seq(4, 500, l = 10),
+                    p = seq(0, 1, l = 10))
+  gr$v <- v(gr$n, gr$p, lambda, gamma)
+  
+  plots[[i]] <- ggplot(df, aes(n, p)) + geom_line(aes(colour=as.factor(sig))) +
+    geom_hline(yintercept = 0.8, linetype=2) +
+    geom_contour(data = gr, aes(z = v), alpha = 0.5, colour = cols[3]) +
+    geom_contour(data = gr, aes(z = v), breaks = c(0), colour = cols[4]) +
+    geom_point(data = df[as.numeric(row.names(rbind(opt1, opt2))), ]) +
+    ylab("Power") + xlab("Sample size") +
+    scale_colour_manual(values=cols[1:2], labels=round(c(sig, 1.3*sig), 2)) +
+    labs(colour = "SD") +
+    theme_minimal()
+}
+
+(plots[[1]] + plots[[2]]) /(plots[[3]] + plots[[4]]) + plot_layout(guides = "collect") & theme(legend.position = 'bottom')
+```
+
+For these four value scenarios, show how the true optimal n varies with the SD and compare against the constrained approach.
+
+```{r}
+plots2 <- vector("list", 4)
+fits <- vector("list", 4); lims <- NULL
+for(i in 1:nrow(params)){
+  lambda <- params[i, 1]; gamma <- params[i, 2]
+  
+  df <- data.frame(sig=seq(0.1,5,0.01))
+  df$n <- sapply(df$sig, function(x) which.min(v(3:500, pow(3:500, x), lambda, gamma)) + 2)
+  df$v <- v(df$n, pow(df$n, df$sig), lambda, gamma)
+  df$n <- df$n*(df$v < 0)
+  df$t <- "v"
+  
+  # Storing GAM approximations for later
+  fits[[i]] <- gam(n ~ s(sig), data = df[df$n > 0,])
+  lim <- df[df$n > 0, "sig"]
+  lim <- lim[length(lim)]^2
+  lims <- c(lims, lim)
+
+  df2 <- data.frame(sig=seq(0.1,5,0.01))
+  df2$n <- sapply(df$sig, function(x) which(pow(3:500, x) >= 0.8)[1] + 2)
+  df2$t <- "c"
+
+plots2[[i]] <- ggplot(rbind(df[,-3], df2), aes(sig, n, colour=t, linetype=t)) + geom_line() +
+  theme_minimal() +
+  ylab("Sample size") + xlab("Standard deviation") +
+  scale_colour_manual(name="Method", values=cols[1:2], labels=c("C", "V")) +
+  scale_linetype_manual(name="Method", values=c(1,2), labels=c("C", "V"))
+}
+
+(plots2[[1]] + plots2[[2]]) /(plots2[[3]] + plots2[[4]]) + plot_layout(guides = "collect") & theme(legend.position = 'bottom')
+```
+
+In all scenarios we see that sample size is fully or almost increasing, before we hit an SD that is so high the value of an optimal trial does not justify the set-up costs. It is interesting to see that for the linear cases, the optimal designs are not far off from those obtained by the constrained method.
+
+Now, find the sample size which minimises the maximum regret over a given SD interval. For comparison, also look at upper CI and NCT methods.
+
+First, make a list of scenarios in terms of estimated sds and their 95\% CI limits based on varying degrees of freedom / hypothetical pilot sample sizes.
+
+```{r}
+df <- expand.grid(sig = seq(0.3, 2, l = 10),
+                  k = seq(10, 100, l = 10))
+df$lo <- sqrt(df$k*df$sig^2/qchisq(0.975, df$k)) 
+df$up <- sqrt(df$k*df$sig^2/qchisq(0.025, df$k)) 
+df$n <- df$n_ci <- df$n_nct <- NA
+
+plots3 <- vector("list", 4)
+for(i in 1:nrow(params)){
+  # Now compute an n x sig matrix of values
+  lambda <- params[i,1]; gamma <- params[i, 2]
+  sigs <- seq(min(df$lo), max(df$up), l = 200)
+  ns <- c(0, 2:500)
+  
+  vs <- matrix(rep(NA, length(sigs)*length(ns)), ncol = length(sigs))
+  for(j in 1:nrow(vs)){
+    for(k in 1:ncol(vs)){
+      p <- 0
+      if(ns[j] != 0 ) p <- pow(ns[j], sigs[k])
+      vs[j, k] <- v(ns[j], p, lambda, gamma)
+    }
+  }
+  
+  for(j in 1:nrow(df)){
+    vs_sub <- vs[, sigs >= df[j, "lo"] & sigs <= df[j, "up"]]
+    opt_v <- -apply(vs_sub, 2, min)
+    regs <- t(t(vs_sub) + opt_v)
+    df$n[j] <- ns[which.min(apply(regs, 1, max))]
+    df$r[j] <- min(apply(regs, 1, max))
+    
+    # Use the point estimate
+    vals <- v(ns, pow(ns, df$sig[j]), lambda, gamma)
+    vals[1] <- v(0, 0, lambda, gamma)
+    df$n_fix[j] <- ns[which.min(vals)]
+    df$r_fix[j] <- max(regs[which(ns == df$n_fix[j]),])
+  
+    # Use the upper CI point, as in Browne
+    #df$n_ci[j] <- which(pow(3:1500, df$up[j]) >= 0.8)[1] + 2
+        
+    # Use the non-central t method of Julious
+    ns2 <- 3:1000
+    if(i == 1 | i == 2){
+      z <- (2*qt(0.8, df$k[j], qt(0.975, 2*ns2 - 2))^2)*(df$sig[j]^2)/(0.3^2)
+    } else {
+      z <- (2*qt(0.8, df$k[j], qt(0.975, 2*ns2 - 2))^2)*(df$sig[j]^2)/(0.3794427^2)
+    }
+    df$n_nct[j] <- ns2[ns2 >= z][1]
+  }
+  
+  plots3[[i]] <- ggplot(df, aes(k)) + geom_tile(aes(y = sig, fill = n)) +
+    scale_fill_viridis(discrete=FALSE, limits = c(0,250)) + 
+      geom_line(data = df[df$sig == 1,], aes(y = up)) +
+      geom_line(data = df[df$sig == 1,], aes(y = lo)) +
+      ylim(c(0.3, 2)) +
+    ylab("Point estimate SD") + xlab("Degrees of freedom") +
+    theme_minimal()
+}
+
+(plots3[[1]] + plots3[[2]]) /(plots3[[3]] + plots3[[4]]) + plot_layout(guides = "collect") & theme(legend.position = 'bottom')
+```
+
+Now, look at a specific point estimate and interval. For each scenario, plot the values of (i) the optimal n, (ii) the minimax n, and (iii) the locally optimal n at the point estimate.
+
+```{r}
+sig <- 1; k <- 30
+lo <- sqrt(k*sig^2/qchisq(0.975, k)) 
+up <- sqrt(k*sig^2/qchisq(0.025, k)) 
+
+plots4 <- vector("list", 4)
+for(i in 1:nrow(params)){
+  # Now compute an n x sig matrix of values
+  lambda <- params[i,1]; gamma <- params[i, 2]
+  sigs <- seq(0.1, 3, l = 200)
+  ns <- c(0, 2:500)
+  
+  vs <- matrix(rep(NA, length(sigs)*length(ns)), ncol = length(sigs))
+  for(j in 1:nrow(vs)){
+    for(k in 1:ncol(vs)){
+      p <- 0
+      if(ns[j] != 0 ) p <- pow(ns[j], sigs[k])
+      vs[j, k] <- v(ns[j], p, lambda, gamma)
+    }
+  }
+  
+  # Get value of optimal designs
+  opt_v_all <- -apply(vs, 2, min)
+  
+  # Get minimax design
+  vs_sub <- vs[, sigs >= lo & sigs <= up]
+  opt_v <- -apply(vs_sub, 2, min)
+  regs <- t(t(vs_sub) + opt_v)
+  n <- ns[which.min(apply(regs, 1, max))]
+  minmax_v <- -vs[which.min(apply(regs, 1, max)),]
+    
+  # Use the point estimate
+  vals <- v(ns, pow(ns, sig), lambda, gamma)
+  vals[1] <- v(0, 0, lambda, gamma)
+  n_fix <- ns[which.min(vals)]
+  fix_v <- -vs[which.min(vals),]
+  #fix_v <- -vs[20,]
+  
+  df <- data.frame(sig = rep(sigs, 3),
+                   v = c(opt_v_all, minmax_v, fix_v),
+                   t = rep(c("Local", "Minimax", "Fixed"), each = length(sigs)))
+  
+  plots4[[i]] <- ggplot(df, aes(sig, v, colour = t)) + geom_line() +
+    scale_colour_manual(name = "", values = cols) +
+    geom_vline(xintercept = c(lo, up), linetype = 2) +
+    ylab("Value") + xlab("Standard deviation") +
+    theme_minimal()
+}
+
+(plots4[[1]] + plots4[[2]]) /(plots4[[3]] + plots4[[4]]) + plot_layout(guides = "collect") & theme(legend.position = 'bottom')
+```
+
+Now, plot the minimax regret for each scenario for each n.
+
+
+```{r}
+sig <- 1; k <- 15
+lo <- sqrt(k*sig^2/qchisq(0.975, k)) 
+up <- sqrt(k*sig^2/qchisq(0.025, k)) 
+
+plots5 <- vector("list", 4)
+for(i in 1:nrow(params)){
+  # Now compute an n x sig matrix of values
+  lambda <- params[i,1]; gamma <- params[i, 2]
+  sigs <- seq(0.1, 3, l = 200)
+  ns <- c(0, 2:500)
+  
+  vs <- matrix(rep(NA, length(sigs)*length(ns)), ncol = length(sigs))
+  for(j in 1:nrow(vs)){
+    for(q in 1:ncol(vs)){
+      p <- 0
+      if(ns[j] != 0 ) p <- pow(ns[j], sigs[q])
+      vs[j, q] <- v(ns[j], p, lambda, gamma)
+    }
+  }
+  
+  # Get minimax design
+  vs_sub <- vs[, sigs >= lo & sigs <= up]
+  opt_v <- -apply(vs_sub, 2, min)
+  regs <- t(t(vs_sub) + opt_v)
+  n <- ns[which.min(apply(regs, 1, max))]
+  
+  # Minimax regret for all ns
+  minmax_regs <- apply(regs, 1, max)
+    
+  # Use the point estimate
+  vals <- v(ns, pow(ns, sig), lambda, gamma)
+  vals[1] <- v(0, 0, lambda, gamma)
+  n_fix <- ns[which.min(vals)]
+  
+  # Use the upper CI point, as in Browne
+  n_ci <- which(pow(3:1500, up) >= 0.8)[1] + 2
+        
+  # Use the non-central t method of Julious
+  ns2 <- 3:1000
+  if(i == 1 | i == 2){
+    z <- (2*qt(0.8, k, qt(0.975, 2*ns2 - 2))^2)*(sig^2)/(0.3^2)
+  } else {
+    z <- (2*qt(0.8, k, qt(0.975, 2*ns2 - 2))^2)*(sig^2)/(0.3794427^2)
+    #z <- (2*qt(0.6, k, qt(0.975, 2*ns2 - 2))^2)*(sig^2)/(0.3^2)
+  }
+  n_nct <- ns2[ns2 >= z][1]
+  
+  df <- data.frame(n = ns,
+                   r = minmax_regs)
+  
+  df2 <- rbind(df[df$n == n,],
+               df[df$n == n_fix,],
+               df[df$n == n_ci,],
+               df[df$n == n_nct,])
+  
+  df2$t <- c("Minimax", "Fixed", "Upper CI", "NCT")
+
+  plots5[[i]] <- ggplot(df, aes(n, r)) + geom_line() +
+      geom_point(data = df2, aes(colour = t)) +
+    scale_colour_manual(name = "", values = cols[c(1,3,4,5)]) +
+    ylab("Maximum regret") + xlab("Sample size") +
+    theme_minimal()
+}
+
+(plots5[[1]] + plots5[[2]]) /(plots5[[3]] + plots5[[4]]) + plot_layout(guides = "collect") & theme(legend.position = 'bottom')
+```
+
+```{r}
+t_var <- 1; k <- 15
+pows <- NULL
+for(i in 1:1000){
+  sig <- sqrt(t_var*rchisq(1, k)/k)
+  #ns2 <- 3:500
+  #z <- (2*qt(0.8, k, qt(0.975, 2*ns2 - 2))^2)*(sig^2)/(0.3^2)
+  #n_nct <- ns2[ns2 >= z][1]
+  n_nct <- power.t.test(delta = 0.3, sd = sig, power = 0.8)$n
+  pows <- c(pows, pow(n_nct, sqrt(t_var)))
+}
+```
+
+Although NCT paper is not particularly clear, I think the method lets us find an n(s) such that the power averaged over the sampling dist of s is nominal. So, as long as we are happy with this definition of power, this does provide a way to address uncertainty in sigma. But, it does nothing in terms of value and costs. So, best to view this as an extension to the usual constrained method, for the special case of a normal endpoint, for when we have uncertainty. 
+
+The question is, should we be using their definition of power?
+
+```{r}
+regret <- function(sig, n, lambda, gamma)
+{
+  # Get the optimal design for that sig
+   opt_n <- which.min(v(3:500, pow(3:500, sig), lambda, gamma)) + 2
+   opt_pow <- pow(opt_n, sig)
+   opt_n2 <- opt_n*(v(opt_n, opt_pow, lambda, gamma) < 0)
+   opt_pow <- opt_pow*(v(opt_n, opt_pow, lambda, gamma) < 0)
+   v(opt_n2, opt_pow, lambda, gamma) - v(n, pow(n, sig), lambda, gamma)
+}
+
+minimax <- function(n, lim)
+{
+  -optim(1, regret, lower = lim[1], upper = lim[2], method = "Brent",
+        n = n, lambda = lambda, gamma = gamma)$value
+}
+
+res <- NULL
+for(sig in 0.3/c(0.3, 0.5)){
+  # For sample sd estimates corresponding to standardised effect sizes
+  # of 0.3, 0.5, 0.8
+  for(j in 1:5){
+    # degrees of freedom from which sample sd = 1 was obtained
+    k <- c(10000, 100, 50, 30, 12)[j]
+    # upper CI
+    up <- sqrt(k*sig^2/qchisq(0.025, k)) 
+    # lower
+    lo <- sqrt(k*sig^2/qchisq(0.975, k)) 
+      
+    for(i in 1:nrow(params)){
+      lambda <- params[i,1]; gamma <- params[i, 2]
+      
+      # minimax regret n
+      n <- optim(100, minimax, lower = 3, upper = 500, method = "Brent",
+            lim = c(lo, up))$par
+      
+      res <- rbind(res, c(n, up-lo, sig, i))
+    }
+      
+      # Use the upper CI point, as in Browne
+      n_ci <- which(pow(3:500, up) >= 0.8)[1] + 2
+      
+      res <- rbind(res, c(n_ci, up - lo, sig, 5))
+      
+      # Use the non-central t method of Julious
+      ns <- 3:500
+      z <- (2*qt(0.8, k, qt(0.975, 2*ns - 2))^2)*(sig^2)/(0.3^2)
+      n_nct <- 2*ns[ns >= z][1]
+      
+      res <- rbind(res, c(n_nct, up-lo, sig, 6))
+  }
+}
+
+df <- as.data.frame(res)
+names(df) <- c("n", "w", "sig", "m")
+
+ggplot(df, aes(w, n, linetype = as.factor(sig), colour = as.factor(m))) + geom_line() +
+  scale_colour_manual(name = "Method", values = cols,
+                      labels = c("Value (i)",
+                                 "Value (ii)",
+                                 "Value (iii)",
+                                 "Value (iv)",
+                                 "Upper CI",
+                                 "NCT")) +
+  xlab("Confidence interval width") +
+  theme_minimal()
+```
+
+So, for the four value functions we've looked at, the precision of the SD estimate makes a negligible difference to the minimaxed sample size. For both cases (an sd estimate of 1 and 0.6), less precision leads to a slight reduction in the sample size for all four example value functions. This contrasts with the upper CI and NCT methods, which both increase n as precision worsens.
+
+This suggests that there is little to be gained from following the outlined procedure - eliciting the value function and minimaxing the regret over an interval - compared to simply using the point estimate and maximising value locally. The final sample size will not be much different.
+
+Plot the value functions of the locally optimal designs and that of the optimal design for the point estimate, when the point estimate is 1.
+```{r}
+sig <- 1
+
+comp_vals <- function(sig, n, lambda, gamma)
+{
+  # Get the optimal design for that sig
+   opt_n <- which.min(v(3:500, pow(3:500, sig), lambda, gamma)) + 2
+   opt_pow <-  pow(opt_n, sig)
+   opt_n2 <- opt_n*( v(opt_n, opt_pow, lambda, gamma) < 0)
+   opt_pow <- opt_pow*( v(opt_n, opt_pow, lambda, gamma) < 0)
+   c(v(opt_n2, opt_pow, lambda, gamma), v(n, pow(n, sig), lambda, gamma))
+}
+
+plots3 <- vector("list", 4)
+for(i in 1:nrow(params)){
+  lambda <- params[i,1]; gamma <- params[i, 2]
+  
+  fix_n <- which.min(v(3:500, pow(3:500, sig), lambda, gamma)) + 2
+  
+  df <- data.frame(sig=seq(0.1,3,0.1))
+  df <- cbind(df, t(sapply(df$sig, comp_vals, n = fix_n, lambda = lambda, gamma = gamma)))
+  df2 <- data.frame(sig = df$sig,
+                    value = df[,2] - df[,3])
+  df <- melt(df, id.vars = "sig")
+  
+  plots3[[i]] <- ggplot(df, aes(sig, -value)) + geom_line(aes(colour = variable)) +
+    geom_line(data = df2, linetype = 2) +
+    scale_colour_manual(name = "", 
+                        values = cols,
+                        labels = c("Local", "Fixed")) +
+    xlab("Standard deviation") + ylab("Value") +
+    ylim(c(-0.5, 0.75)) +
+    theme_minimal()
+}
+
+(plots3[[1]] + plots3[[2]]) /(plots3[[3]] + plots3[[4]])
+```
+
+In some cases, we see that there is very little difference in value between the fixed and the locally optimal design over a good range of SDs.
+
+Now, consider the SSR problem. We have some estimate and interval of $\sigma$, and we are considering running a pilot trial to get a better one. This new estimate will thn be used to determine the main trial sample size, using the approach above. Now, the value of this whole process is uncertain since the pilot outcome is uncertain. We then need to move from value (deterministic) to utility (stochastic). We will assume we are risk-neitral, so these are the same thing and we can focus on expected value. To calculate this, we need to integrate over the pilot sampling distribution. We do this by first fidning the interval over which the optimal main sample size is not 0, and integrating over that. This makes things numerically stable, as it avoids discontinuities. We can speed things up by finding the optimal n for sigs and then model with a gam, so we can pull these optimal ns out repeatedly over the simulations in a vectorised way.
+
+```{r}
+exp_val_def<- function(n_p, lambda, gamma, w, sig, lim, g, fit)
+{
+  # Expected value of program with pilot sample size n_p, value params
+  # lambda and gamma, and relative sampling cost w (low double means cheap pilot)
+  
+  # Shape and scale params of the sample variance dist
+  k <- (n_p-1)/2; theta <- 2*sig^2/(n_p-1)
+  
+  # Transform quad nodes
+  to_eval <- 0.5*(lim - 0.1^2)*g$nodes + 0.5*(lim + 0.1^2)
+  
+  # Find optimal ns for those variances
+  ns <- predict(fit, newdata = data.frame(sig = sqrt(to_eval)))
+  
+  # Get overall value at each point, weighted by the sampling distribution
+  vs <- v(ns, pow(ns, sig), lambda, gamma)*dgamma(to_eval, shape = k, scale = theta)
+  
+  # Calculate the integral as the weighted sum of these values
+  # and add the penalty for the pilot sample size
+  sum(g$weights*vs*0.5*(lim - 0.1^2)) + lambda*w*n_p #+ 0.3365181*w
+}
+
+n_p <- 15; w <- 1; sig <- 1.2
+
+lambda <- params[i, 1]; gamma <- params[i, 2]
+
+# Get the internal definite integral
+ptm <- proc.time()
+g <- gauss.quad(1000,"legendre")
+exp_val_def(n_p, lambda, gamma, w, sig, lims[i], g, fits[[i]])
+proc.time() - ptm
+
+# Check using MC - simulate from sampling dist and take mean value
+ptm <- proc.time()
+k <- (n_p-1)/2; theta <- 2*sig^2/(n_p-1)
+to_eval <- rgamma(10^5, shape = k, scale = theta)
+to_eval <- to_eval[to_eval <= lims[i] & to_eval >= 0.1^2]
+ns <- predict(fits[[i]], newdata = data.frame(sig = sqrt(to_eval)))
+vs <- v(ns, pow(ns, sig), lambda, gamma) + lambda*w*n_p
+mean(vs)
+proc.time() - ptm
+```
+
+
+For each of the four value functions, we can plot the expected value for a range of $n_p$ and a number of weights, conditional on some true value of $\sigma$:
+
+```{r}
+sig <- 0.8
+g <- gauss.quad(200,"legendre")
+plots4 <- vector("list", 4)
+for(i in 1:nrow(params)){
+  print(i)
+  lambda <- params[i, 1]; gamma <- params[i, 2]
+  
+  df <- expand.grid(n_p = 3:50,
+                   w = c(0.2, 0.5, 0.8, 1))
+
+  df$v <- apply(df, 1, function(x) exp_val_def(x[1], lambda, gamma, x[2], sig,
+                                               lims[i], g, fits[[i]]))
+  
+  df2 <- data.frame(n_p = c(5, 15, 30, 50))
+  df2$lo <- sqrt(df2$n_p*1^2/qchisq(0.975, df2$n_p))
+  df2$up <- sqrt(df2$n_p*1^2/qchisq(0.025, df2$n_p))
+  
+  fix_ns <- apply(df2, 1, function(x) optim(100, minimax, lower = 3, upper = 500, method = "Brent", lim = c(x[2], x[3]))$par)
+  df2$v <- v(fix_ns, pow(fix_ns, sig), lambda, gamma)
+
+  plots4[[i]] <- ggplot(df, aes(n_p, -v)) + geom_line(aes(linetype = as.factor(w))) +
+    geom_point(data = df2, colour = cols[1]) +
+    theme_minimal() +
+    xlab("Pilot sample size") + ylab("Expected value") +
+    labs(linetype = "w")
+}
+
+(plots4[[1]] + plots4[[2]]) /(plots4[[3]] + plots4[[4]])
+```
+
+We can now define expected regret as the expected value of the pilot-main trial program, minus the value of the locally optimal main trial. This provides a basis for choosing $n_p$ - we want to minimise the maximum (worst-case) regret over our initial interval for $\sigma$.
+
+```{r}
+g <- gauss.quad(200,"legendre")
+i <- 3
+lambda <- params[i, 1]; gamma <- params[i, 2]
+  
+sigs <- seq(0.1, 3, 0.01)
+n_ps <- c(3:30)
+res <- matrix(rep(NA, length(sigs)*length(n_ps)), nrow = length(sigs))
+for(j in 1:length(n_ps)){
+  for(k in 1:length(sigs)){
+    if(sigs[k] < sqrt(lims[i])){
+      opt_n <- predict(fits[[i]], newdata = data.frame(sig = sigs[k]))
+      opt_v <- v(opt_n, pow(opt_n, sigs[k]), lambda, gamma)
+    } else {
+      opt_n <- 0
+      opt_v <- 0
+    }
+    res[k, j] <- exp_val_def(n_ps[j], lambda, gamma, 1, sigs[k], lims[i], g, fits[[i]]) - opt_v
+  }
+}
+# Locally optimal n_p
+plot(max.col(-res))
+
+sigs <- seq(0.1, 3, 0.01)
+ns <- 3:400
+res2 <- matrix(rep(NA, length(sigs)*length(ns)), nrow = length(sigs))
+for(j in 1:length(ns)){
+  for(k in 1:length(sigs)){
+    if(sigs[k] < sqrt(lims[i])){
+      opt_n <- predict(fits[[i]], newdata = data.frame(sig = sigs[k]))
+      opt_v <- v(opt_n, pow(opt_n, sigs[k]), lambda, gamma)
+    } else {
+      opt_n <- 0
+      opt_v <- 0
+    }
+    res2[k, j] <- v(ns[j], pow(ns[j], sigs[k]), lambda, gamma) - opt_v
+  }
+}
+# Locally optimal n
+plot(max.col(-res2))
+
+minmax_np <- function(est, k, sigs, res, res2)
+{
+  # upper CI
+  up <- sqrt(k*est^2/qchisq(0.025, k))
+  up <- head(which(sigs > up), 1)
+  # lower
+  lo <- sqrt(k*est^2/qchisq(0.975, k))
+  lo <- tail(which(sigs < lo), 1)
+  
+  max_reg <- rep(NA, length(n_ps))
+  for(j in 1:length(n_ps)){
+    max_reg[j] <- max(res[lo:up,j])
+  }
+    
+  max_reg2 <- rep(NA, length(ns))
+  for(j in 1:length(ns)){
+    max_reg2[j] <- max(res2[lo:up,j])
+  }
+  
+  plot(res2[,which.min(max_reg2)])
+  points(res[,which.min(max_reg)], col="red")
+  
+  if(min(max_reg) < min(max_reg2)){
+    n_ps[which.min(max_reg)]
+  } else {
+    0
+  }
+}
+
+minmax_np(1, 100, sigs, res, res2)
+```
+
+
+
+We can compare against Whitehead et al, who suggest optimal sample sizes for different estimated sds (or equivalently, standardised effect sizes). 
+
+
+
+
+```{r}
+MC_vs <- function(n_p)
+{
+  k <- (n_p-1)/2; theta <- 2*sig^2/(n_p-1)
+  to_eval <- rgamma(50, shape = k, scale = theta)
+  ns <- sapply(to_eval, function(x) which.min(v(3:1000, pow(3:1000, sqrt(x)), lambda, gamma)) + 2)
+  v(ns + 1*n_p, pow(ns, sig), lambda, gamma)
+}
+
+n_ps <- NULL; vs <- NULL
+for(j in 3:50){
+  n_ps <- c(n_ps, j)
+  vs <- c(vs, mean(MC_vs(j)))
+}
+
+plot(n_ps, vs)
+```
+
+We see that the optimal pilot size tends to 0, so the benefits are not justified by the cost of extra sampling. Tbis makes sense based on what we saw earlier - the width of the CI over which we do minimax regret doesnt have much effect on the chosen n; so reducing the width via a larger pilot will make no difference to the n we end up with. But, a variable pilot will gives us chaotic point estimates, and so more variation in the chosen n...
+
+
+
+```{r}
+# Re-estimation - for a true sd and a pilot sample of k = 6, get distribution of final sample size
+v <- (c(0.7, 1, 1.3)*sig)^2
+df <- data.frame(vs = rep(v, 10^3))
+df$v_est <- df$vs*rchisq(10^3, 11)/11
+df$n <- sapply(df$v_est, function(x) optim(10, fn=f, lower=2, upper=1000, sig=sqrt(x), lambda=lambda, method="Brent")$par)
+df$p <- apply(df, 1, function(x) pow(x[3], sqrt(x[1])))
+df$t <- "v"
+
+df2 <- df[,1:2]
+df2$n <- sapply(df2$v_est, function(x) power.t.test(delta=0.3, sd=sqrt(x), power=0.8)$n*2)
+df2$p <- apply(df2, 1, function(x) pow(x[3], sqrt(x[1])))
+df2$t <- "c"
+
+df2 <- df[,1:2]
+df2$n <- sapply(df2$v_est, function(x) power.t.test(delta=0.3, sd=sqrt(x), power=0.8)$n*2)
+df2$p <- apply(df2, 1, function(x) pow(x[3], sqrt(x[1])))
+df2$t <- "c"
+
+df <- rbind(df, df2)
+
+p1 <- ggplot(df, aes(as.factor(vs), n, fill=t)) + geom_boxplot() +
+  theme_minimal() + ylab("Sample size") +
+  scale_fill_manual(name="Method", values=cols[1:2], labels=c("Constrained", "Value-based")) +
+  scale_x_discrete(name="Standard deviation", 
+                   labels = c(expression(0.7*sigma), 
+                              expression(sigma),
+                              expression(1.3*sigma))) +
+  theme(panel.grid.major.x = element_blank())
+
+#ggsave("./paper/figures/n_dist_t_test.pdf", width = 15, height = 10, units="cm")
+#ggsave("./paper/figures/n_dist_t_test.eps", width = 15, height = 10, units="cm", device = cairo_ps())
+  
+p2 <- ggplot(df, aes(as.factor(vs), p, fill=t)) + geom_boxplot() +
+  theme_minimal() + ylab("Power") + 
+  scale_y_continuous(breaks=seq(0,1,0.2)) +
+  scale_fill_manual(name="Method", values=cols[1:2], labels=c("Constrained", "Value-based")) +
+  scale_x_discrete(name="Standard deviation", 
+                   labels = c(expression(0.7*sigma), 
+                              expression(sigma),
+                              expression(1.3*sigma))) +
+  theme(panel.grid.major.x = element_blank())
+
+p1 + p2
+
+#ggsave("./paper/figures/p_dist_t_test.pdf", width = 15, height = 10, units="cm")
+#ggsave("./paper/figures/p_dist_t_test.eps", width = 15, height = 10, units="cm", device = cairo_ps())
+
+#ggpubr::ggarrange(p1, p2, ncol=2, nrow=1, common.legend = TRUE, legend="bottom")
+
+#ggsave("./paper/figures/dists_t_test.pdf", width = 15, height = 10, units="cm")
+#ggsave("./paper/figures/dists_t_test.eps", width = 15, height = 10, units="cm", device = cairo_ps())
+```
+
+For a number of pilot sample size choices, simulate pilot estimates, use these to get main n, compare value against fixed design based on an initial guess.
+
+```{r}
+g <- function(x)
+{
+  v <- (x[1]*sig)^2
+  
+  # Get fixed design based on sig
+  n_fix <- optim(10, fn=f, lower=2, upper=1000, sig=sig, lambda=lambda, method="Brent")$par
+  
+  # Sample pilot estimates
+  n_p <- x[2]
+  v_est <- v*rchisq(10^3, (n_p - 1))/(n_p - 1)
+  
+  # Get optimal designs based on pilot estimates
+  n <- sapply(v_est, function(x) optim(10, fn=f, lower=2, upper=1000, sig=sqrt(x), lambda=lambda, method="Brent")$par)
+  
+  # Calculate actual power and value
+  a <- 1
+  p <- pow(n, sqrt(v))
+  val <- (p - lambda*(n + n_p))
+  #val <- (1 - exp(-a*val))/a
+  
+  fix_val <- pow(n_fix, sqrt(v)) - lambda*n_fix
+  #fix_val <- (1 - exp(-a*fix_val))/a
+  
+  c(#mean(val > fix_val), 
+    mean(val), 
+    fix_val)
+}
+
+df <- expand.grid(sig_prop = seq(0.5, 2, 0.05),
+                  n_p = c(3, 6, 12, 30, 60))
+df <- cbind(df, t(apply(df, 1, g)))
+names(df)[3:4] <- c("value", "fixed")
+
+ggplot(df, aes(sig_prop, colour=as.factor(n_p))) + geom_line(aes(y = value)) +
+  geom_line(aes(y = fixed), linetype = 2)
+```
+
+```{r}
+g <- function(n, lambda, delta, samp)
+{
+  # Given a sample of points in the nuisance parameter space and their optimal values,
+  # evaluate a fixed design by seeing at how many of these points the fixed value
+  # is within a delta tolerance of the optimal value
+  sum( (samp[,2] - f(n, sig=samp[,1], lambda)) > -delta )
+}
+
+opt$v <- f(opt$n, opt$sig, lambda)
+
+# Get samples, their optimal designs, and values
+M <- 2000
+samp <- data.frame(sig=runif(M, min(opt[,1]), max(opt[,1])))
+samp$v <- apply(samp, 1, function(x) optim(10, fn=f, lower=2, upper=1000, sig=x, lambda=lambda, method="Brent")$value)
+
+# Find the m which best evaluates according to g
+delta <- 0.03
+rob <- (4:100)[which.max(sapply(4:100, g, lambda=lambda, delta=delta, samp=samp))]
+rob
+
+# Get value of a fixed design for comparison
+opt3 <- opt[,1:3]; opt3$n <- rob; opt3$t <- "f"
+opt3$v<- f(n=rob, sig=opt3[,1], lambda)
+
+d <- -opt$v + opt3$v
+
+ggplot(rbind(opt, opt3), aes(sig)) + geom_line(aes(y=-v, colour=t)) +
+  geom_line(data=opt3, aes(y=d), colour="black", linetype=2) +
+  theme_minimal() +
+  geom_hline(yintercept = delta, linetype=3) +
+  scale_color_manual(name="Design", values=cols[3:4], labels=c("Fixed", "Optimal")) +
+  ylab("Value") + xlab("Standard deviation")
+
+#ggsave("./paper/figures/fixed_t_test.pdf", width = 15, height = 10, units="cm")
+#ggsave("./paper/figures/fixed_t_test.eps", width = 15, height = 10, units="cm", device = cairo_ps())
+```
+
+```{r}
+# Given a range of nuisnace parameter values, find the design with the minimax discrepancy over that range
+h <- function(sig, n, lambda)
+{
+  v <- -optim(10, fn=f, lower=2, upper=1000, sig=sig, lambda=lambda, method="Brent")$value
+  -(v + f(n, sig, lambda))
+}
+
+h2 <- function(n, lambda, sig_range, samp)
+{
+  sub <- samp[samp[,1] > sig_range[1] & samp[,1] < sig_range[2], ]
+  vs <- f(n, sub$sig, lambda)
+  optim(sub[which.max(-sub$v + vs), 1], fn=h, lower=sig_range[1], upper=sig_range[2], n=n, lambda=lambda, method="L-BFGS-B")$value
+}
+
+sig_range <- c(0.75*sig, 1.25*sig)
+rob2 <- (4:50)[which.max(sapply(4:50, h2, lambda=lambda, sig_range=sig_range, samp=samp))]
+rob2
+
+h2(rob2, lambda=lambda, sig_range=sig_range, samp=samp)
+
+# Get value of a fixed design for comparison
+opt4 <- opt[,1:3]; opt4$n <- rob2; opt4$t <- "f"
+opt4$v<- f(n=rob2, sig=opt4[,1], lambda)
+
+d <- -opt$v + opt4$v
+
+ggplot(rbind(opt, opt4), aes(sig)) + geom_line(aes(y=-v, colour=t)) +
+  geom_line(data=opt4, aes(y=d), colour="black", linetype=2) +
+  theme_minimal() +
+  scale_color_manual(name="Design", values=cols[3:4], labels=c("Fixed", "Optimal")) +
+  ylab("Value") + xlab("Standard deviation") +
+  geom_vline(xintercept = sig_range, linetype=3)
+
+#ggsave("./paper/figures/minimax_t_test.pdf", width = 15, height = 10, units="cm")
+#ggsave("./paper/figures/minimax_t_test.eps", width = 15, height = 10, units="cm", device = cairo_ps())
+```
+
+
+For a given choice of sample size, there is a trade-off parameter corresponding to every possible MCID. We are willing to pay a higher rate for a larger MCID. For example, if we determine value based on 80\% power to detect MCID of 0.3 we get a robust design of 29, but if instead it is 96\% power to detect 0.4 our robust design is 70. Does this make sense? So, two people have the same optimal design conditional on a np estimate; but very different robust designs. That is, one is more sensitive to changes in the np than the other. 
+
+First, note that this is not specific to our approach. under the constrained approach, the optimal design becomes more sensitive to the np as the threshold is increased. 
+
+A more general framework would be that we want to simultaneously maximise power at all effect sizes greater than the true MCID where we want 50\%. We need to combine this continum of objectives into a single measure, e.g. through a weighted sum. In the continuous case, this is integrating with respect to some weighting function, where the weighting function integrates to 1, i.e. is a probability distribution. So, this is equivalent to maximising expected power with respect to a prior on the effect size. Since trunctaed at the true MCID, this could be interpreted as prior prob of trial success, given there is a true worthwhile effect.
+
+```{r}
+pow2 <- function(n, sig, mu)
+{
+  n <- n/2
+  #power.t.test(n = n, delta = 0.3, sd = sig)$power
+  1-pt(qt(0.975, 2*(n-1)), 2*(n-1), mu/sqrt(2*sig^2/n))
+}
+
+n <- 2*19; sig <- 0.3205898; mu <- 0.4
+pow2(n, sig, mu=mu)
+
+lambda <- grad(pow2, n, sig=sig, mu=mu)
+```
+
+## Example - cluster RCT, m and k
 
 ```{r}
 clus_pow <- function(x, var_t, rho)
@@ -265,35 +1197,63 @@ ggplot(df, aes(n, pow, group=k, colour=k)) + geom_line() +
 
 #ggsave("./paper/figures/cluster_pow.pdf", height=9, width=14, units="cm")
 
-des <- c(25, 450)
-des <- c(15, 470)
+#des <- c(25, 450)
+#des <- c(15, 470)
 des <- c(25, 270)
+des <- c(19, 19*18)
 clus_pow(des, 1, 0.05)
 lambda <- grad(clus_pow, des, var_t=1, rho=0.05)
 
-f <- function(x, var_t, rho)
+f <- function(x, var_t, rho, lambda)
 {
   pow <- clus_pow(x, var_t, rho)
   -(pow - sum(lambda*x))
 }
 
-opt <- expand.grid(var_t=seq(0.5, 2, 0.05), rho=seq(0,0.2,0.01))
-opt <- cbind(opt, t(apply(opt, 1, function(x) optim(c(10,10), fn=f, lower=c(2,2), upper=c(50,1000), var_t=x[1], rho=x[2], method="L-BFGS-B")$par)))
+opt <- expand.grid(var_t=seq(0.5, 1.5, 0.05), rho=seq(0.025, 0.1, 0.005))
+opt <- cbind(opt, t(apply(opt, 1, function(x) optim(c(10,10), fn=f, lower=c(2,2), upper=c(50,1000), var_t=x[1], rho=x[2], lambda=lambda, method="L-BFGS-B")$par)))
 names(opt)[3:4] <- c("k", "n")
-opt$v <- apply(opt, 1, function(x) f(x[3:4],x[1],x[2]))
+opt$v <- apply(opt, 1, function(x) f(x[3:4],x[1],x[2], lambda))
 
-rob <- opt
-rob$k <- des[1]
-rob$n <- des[2]
-rob$v <- apply(rob, 1, function(x) f(x[3:4],x[1],x[2]))
+ggplot(opt, aes(k,n, colour=rho, size=var_t)) + geom_point()
+```
 
-rob$d <- opt$v - rob$v
+```{r}
+g <- function(x, lambda, delta, samp)
+{
+  # Given a sample of points in the nuisance parameter space and their optimal values,
+  # evaluate a fixed design by seeing at how many of these points the fixed value
+  # is within a delta tolerance of the optimal value
+  sum( (samp[,3] - f(x, var_t=samp[,1], rho=samp[,2], lambda)) > -delta )
+}
 
-ggplot(rob, aes(var_t, rho, z=d, colour=..level..)) + geom_contour(breaks=c(-0.0001,seq(-0.01,-0.1,-0.01))) +
-  ylab(expression(rho)) + xlab(expression(sigma[t]^2)) +
-  theme_minimal()
+# Get samples, their optimal designs, and values
+M <- 5000
+samp <- data.frame(var_t=runif(M, min(opt[,1]), max(opt[,1])), rho=runif(M, min(opt[,2]), max(opt[,2])))
+samp$v <- apply(samp, 1, function(x) optim(c(10,10), fn=f, lower=c(2,2), upper=c(50,1000), var_t=x[1], rho=x[2], lambda=lambda, method="L-BFGS-B")$value)
 
-#ggsave("./paper/figures/cluster_disc.pdf", height=9, width=14, units="cm")
+# Find the m which best evaluates according to g
+delta <- 0.03
+eval <- data.frame(k=rep(4:50, each=29)); eval$n <- 2:30*eval$k
+eval <- eval[eval$n < 600,]
+rob <- eval[which.max(apply(eval, 1, g, lambda=lambda, delta=delta, samp=samp)),]
+rob
+
+g(as.numeric(rob), lambda, delta, samp)
+
+# Get value of a fixed design for comparison
+opt3 <- opt[,1:2]; opt3$k <- rob[[1]]; opt3$n <- rob[[2]]; opt3$t <- "f"
+opt3$v<- f(x=as.numeric(rob), var_t = opt3[,1], rho = opt3[,2], lambda)
+
+opt$d <- -opt$v + opt3$v
+
+ggplot(opt, aes(var_t, rho, z=d, colour=as.factor(..level..))) + geom_contour(breaks=seq(0.01, 0.05, 0.01)) + #geom_contour(breaks=seq(0.01, 0.05, 0.005)) +
+  theme_minimal() +
+  ylab("Intracluster correlation") + xlab("Total variance") +
+  scale_colour_discrete(name = "Difference in value")
+
+#ggsave("./paper/figures/mult_design.pdf", width = 15, height = 10, units="cm")
+#ggsave("./paper/figures/mult_design.eps", width = 15, height = 10, units="cm", device = cairo_ps())
 ```
 
 ## Example - survival
@@ -399,7 +1359,281 @@ opt <- psoptim(c(35,50), coverage, df=df, diff=diff, lambda=lambda,
               lower = c(0,0), upper = c(100,100))#, method="L-BFGS-B")
 ```
 
+## Stepped wedge
 
+From Hooper et al. (2016).
+
+```{r}
+def_c <- function(m, rho)
+{
+  # Design effect due to clustering
+  1 + (m - 1)*rho
+}
+
+def_r <- function(r, l, t, b, c, d)
+{
+  # Design effect due to repeated assessment 
+  l^2 * (1 - r)*(1 + t*r)/(4*(l*b - d + (b^2 + l*t*b - t*d - l*c)*r))
+}
+
+m <- 36 # cluster size
+rho <- 0.33; pi <- 0.9; sig <- 5; tau <- 0.7 # nuisance parameter estimates
+l <- 3; t <- 3; k <- 4 # l=t= number of arms (ie rows) in stepped wedge design; k = number of clusters per arm
+a <- matrix(c(0,0,0, 1,0,0, 1,1,0, 1,1,1), nrow = 3) # stepped wedge matrix
+b <- sum(a); c <- sum(colSums(a)^2); d <- sum(rowSums(a)^2)
+```
+
+```{r}
+# Repeated cross section
+r_cc_rcs <- function(m, rho, pi)
+{
+  # Correlation in a repeated cross-section cluster design
+  (m*rho*pi)/(1 + (m - 1)*rho)
+}
+
+pow_rcs <- function(mm, k, rho, pi, l, t, b, c, d, sig)
+{
+  # Effective individually randomised sample size
+  eff_n <- l*k*mm/(def_r(r_cc_rcs(mm, rho, pi), l, t, b, c, d)*def_c(mm, rho))
+  power.t.test(n = eff_n/2, delta = 2, sd = sig)$power
+}
+
+r_cc_rcs(m, rho, pi)
+
+def_r(r_cc_rcs(m, rho, pi), l, t, b, c, d)
+
+pow_rcs(m, k, rho, pi, l, t, b, c, d, sig)
+
+lambda <- grad(pow_rcs, m, method="Richardson", k=k, rho=rho, pi=pi, l=l, t=t, b=b, c=c, d=d, sig=sig)
+
+ms <- 2:45; ps <- pow_rcs(ms, k, rho, pi, l, t, b, c, d, sig)
+
+f <- function(m, k, rho, pi, l, t, b, c, d, sig, lambda)
+{
+  # Value function
+  p <- pow_rcs(m, k, rho, pi, l, t, b, c, d, sig)
+  -(p - lambda*m)
+}
+
+# Find optimal m for various nuisance parameter values
+opt <- expand.grid(rho=seq(0,0.7,0.01), pi=seq(0.7, 1, 0.01), sig=c(4,5,6,7))
+opt <- cbind(opt, apply(opt, 1, function(x) optim(10, fn=f, lower=2, upper=1000, 
+                                                    k=k, rho=x[1], pi=x[2], l=l, t=t, b=b, c=c, d=d, sig=x[3], lambda=lambda,
+                                                    method="L-BFGS-B")$par))
+names(opt)[4] <- c("m")
+opt$v <- f(opt[,4], k, opt[,1], opt[,2], l, t, b, c, d, opt[,3], lambda)
+
+ggplot(opt, aes(rho, pi, z=m, colour=..level..)) + geom_contour() +
+  facet_wrap(.~sig)
+
+g <- function(m, k, l, t, b, c, d, lambda, vs, delta, samp)
+{
+  # Given a sample of points in the nuisance parameter space and their optimal values,
+  # evaluate a fixed design by seeing at how many of these points the fixed value
+  # is within a delta tolerance of the optimal value
+  sum( (vs - f(m, k, samp[,1], samp[,2], l, t, b, c, d, samp[,3], lambda)) > -delta )
+}
+
+# Get samples, their optimal designs, and values
+M <- 2000
+samp <- data.frame(rho=runif(M, min(opt[,1]), max(opt[,1])), 
+                   pi=runif(M, min(opt[,2]), max(opt[,2])),
+                   sig=runif(M, min(opt[,3]), max(opt[,3])))
+samp$v <- apply(samp, 1, function(x) optim(10, fn=f, lower=2, upper=1000, 
+                                                    k=k, rho=x[1], pi=x[2], l=l, t=t, b=b, c=c, d=d, sig=x[3], lambda=lambda,
+                                                    method="L-BFGS-B")$value)
+
+# Find the m which best evaluates according to g
+rob <- (2:50)[which.max(sapply(2:50, g, k=k, l=l, t=t, b=b, c=c, d=d, lambda=lambda, vs=samp[,4], 
+                        delta=0.05, samp=samp))]
+
+# Get value of a fixed design for comparison
+opt$v_fix <- f(m=rob, k, opt[,1], opt[,2], l, t, b, c, d, opt[,3], lambda)
+ggplot(opt, aes(rho, pi, z=v - v_fix, colour=..level..)) + geom_contour(breaks=-c(0.01, 0.025, 0.05, 0.1)) +
+  facet_wrap(.~sig)
+```
+
+
+
+```{r}
+# Closed cohort
+r_cc_clch <- function(m, rho, pi, tau)
+{
+  # Correlation in a closed cohort
+  (m*rho*pi + (1 - rho)*tau)/(1 + (m - 1)*rho)
+}
+
+pow_clch <- function(mm, k, rho, pi, tau, l, t, b, c, d, sig)
+{
+  # Effective individually randomised sample size
+  eff_n <- l*k*mm/(def_r(r_cc_clch(mm, rho, pi, tau), l, t, b, c, d)*def_c(mm, rho))
+  power.t.test(n = eff_n/2, delta = 2, sd = sig)$power
+}
+
+m <- 10
+
+r_cc_clch(m, rho, pi, tau)
+
+def_r(r_cc_clch(m, rho, pi, tau), l, t, b, c, d)
+
+pow_clch(m, k, rho, pi, tau, l, t, b, c, d, sig)
+
+lambda <- grad(pow_clch, m, method="Richardson", k=k, rho=rho, pi=pi, tau=tau, l=l, t=t, b=b, c=c, d=d, sig=sig)
+
+ms <- 2:45; ps <- pow_clch(ms, k, rho, pi, tau, l, t, b, c, d, sig)
+
+f2 <- function(m, k, rho, pi, tau, l, t, b, c, d, sig, lambda)
+{
+  # Value function
+  p <- pow_clch(m, k, rho, pi, tau, l, t, b, c, d, sig)
+  -(p - lambda*m)
+}
+
+# Find optimal m for various nuisance parameter values
+opt <- expand.grid(rho=seq(0,0.7,0.01), pi=seq(0.7, 1, 0.01), sig=c(4,5,6), tau=c(0.5, 0.7, 0.9))
+opt <- cbind(opt, apply(opt, 1, function(x) optim(10, fn=f2, lower=2, upper=1000, 
+                                                    k=k, rho=x[1], pi=x[2], tau=x[4], l=l, t=t, b=b, c=c, d=d, sig=x[3], lambda=lambda,
+                                                    method="L-BFGS-B")$par))
+names(opt)[5] <- c("m")
+opt$v <- f2(opt[,5], k, opt[,1], opt[,2], opt[,4], l, t, b, c, d, opt[,3], lambda)
+
+# Plot optimal m for different parameter values
+ggplot(opt, aes(rho, pi, z=m, colour=..level..)) + geom_contour() +
+  facet_wrap(sig ~ tau) +
+  theme_minimal()
+```
+
+```{r}
+g2 <- function(m, k, l, t, b, c, d, lambda, vs, delta, samp)
+{
+  # Given a sample of points in the nuisance parameter space and their optimal values,
+  # evaluate a fixed design by seeing at how many of these points the fixed value
+  # is within a delta tolerance of the optimal value
+  sum( (vs - f2(m, k, samp[,1], samp[,2], samp[,4], l, t, b, c, d, samp[,3], lambda)) > -delta )
+}
+
+# Get samples, their optimal designs, and values
+M <- 5000
+samp <- data.frame(rho=runif(M, min(opt[,1]), max(opt[,1])), 
+                   pi=runif(M, min(opt[,2]), max(opt[,2])),
+                   sig=runif(M, min(opt[,3]), max(opt[,3])),
+                   tau=runif(M, min(opt[,4]), max(opt[,4])))
+samp$v <- apply(samp, 1, function(x) optim(10, fn=f2, lower=2, upper=1000, 
+                                                    k=k, rho=x[1], pi=x[2], tau=x[4], l=l, t=t, b=b, c=c, d=d, sig=x[3], lambda=lambda,
+                                                    method="L-BFGS-B")$value)
+
+# Find the m which best evaluates according to g
+rob2 <- (2:50)[which.max(sapply(2:50, g2, k=k, l=l, t=t, b=b, c=c, d=d, lambda=lambda, vs=samp[,5], 
+                        delta=0.03, samp=samp))]
+rob2
+
+# Get value of a fixed design for comparison
+opt$v_fix <- f2(m=rob2, k, opt[,1], opt[,2], opt[,4], l, t, b, c, d, opt[,3], lambda)
+
+ggplot(opt, aes(rho, pi, z=-(v - v_fix), colour=as.factor(..level..))) + geom_contour(breaks= seq(0.01, 0.05, 0.01)) +
+  facet_wrap(sig ~ tau) + 
+  theme_minimal() +
+  theme(legend.position="bottom") +
+  scale_colour_discrete(name = "Difference in value") +
+  xlab("Intracluster correlation") + ylab("Cluster autocorrelation")
+  
+#ggsave("./paper/figures/fixed_sw.pdf", width = 15, height = 15, units="cm")
+#ggsave("./paper/figures/fixed_sw.eps", width = 15, height = 15, units="cm", device = cairo_ps())
+```
+
+```{r}
+# Closed cohort - fixed m
+r_cc_clch <- function(m, rho, pi, tau)
+{
+  # Correlation in a closed cohort
+  (m*rho*pi + (1 - rho)*tau)/(1 + (m - 1)*rho)
+}
+
+pow_clch <- function(k, mm, rho, pi, tau, l, t, b, c, d, sig)
+{
+  # Effective individually randomised sample size
+  eff_n <- l*k*mm/(def_r(r_cc_clch(mm, rho, pi, tau), l, t, b, c, d)*def_c(mm, rho))
+  power.t.test(n = eff_n/2, delta = 2, sd = sig)$power
+}
+
+m <- 10
+k <- 4
+
+r_cc_clch(m, rho, pi, tau)
+
+def_r(r_cc_clch(m, rho, pi, tau), l, t, b, c, d)
+
+pow_clch(k, m, rho, pi, tau, l, t, b, c, d, sig)
+
+lambda <- grad(pow_clch, k, method="Richardson", mm=m, rho=rho, pi=pi, tau=tau, l=l, t=t, b=b, c=c, d=d, sig=sig)
+
+ms <- 2:45; ps <- pow_clch(ms, k, rho, pi, tau, l, t, b, c, d, sig)
+ks <- 2:6; ps <- pow_clch(ks, m, rho, pi, tau, l, t, b, c, d, sig)
+
+f2 <- function(k, m, rho, pi, tau, l, t, b, c, d, sig, lambda)
+{
+  # Value function
+  p <- pow_clch(k, m, rho, pi, tau, l, t, b, c, d, sig)
+  -(p - lambda*k)
+}
+
+# Find optimal m for various nuisance parameter values
+opt <- expand.grid(rho=seq(0,0.7,0.01), pi=seq(0.7, 1, 0.01), sig=c(4,5,6), tau=c(0.5, 0.7, 0.9))
+opt <- cbind(opt, apply(opt, 1, function(x) optim(5, fn=f2, lower=2, upper=1000, 
+                                                    m=m, rho=x[1], pi=x[2], tau=x[4], l=l, t=t, b=b, c=c, d=d, sig=x[3], lambda=lambda,
+                                                    method="L-BFGS-B")$par))
+names(opt)[5] <- c("k")
+opt$v <- f2(opt[,5], m, opt[,1], opt[,2], opt[,4], l, t, b, c, d, opt[,3], lambda)
+
+# Plot optimal m for different parameter values
+ggplot(opt, aes(rho, pi, z=k, colour=as.factor(..level..))) + geom_contour(breaks = 2:6) +
+  facet_wrap(sig ~ tau) +
+  theme_minimal() +
+  theme(legend.position="bottom") +
+  scale_colour_discrete(name = "Number of clusters") +
+  xlab("Intracluster correlation") + ylab("Cluster autocorrelation")
+
+#ggsave("./paper/figures/opt_sw_k.pdf", width = 15, height = 15, units="cm")
+#ggsave("./paper/figures/opt_sw_k.eps", width = 15, height = 15, units="cm", device = cairo_ps())
+```
+
+```{r}
+g2 <- function(k, m, l, t, b, c, d, lambda, vs, delta, samp)
+{
+  # Given a sample of points in the nuisance parameter space and their optimal values,
+  # evaluate a fixed design by seeing at how many of these points the fixed value
+  # is within a delta tolerance of the optimal value
+  sum( (vs - f2(k, m, samp[,1], samp[,2], samp[,4], l, t, b, c, d, samp[,3], lambda)) > -delta )
+}
+
+# Get samples, their optimal designs, and values
+M <- 5000
+samp <- data.frame(rho=runif(M, min(opt[,1]), max(opt[,1])), 
+                   pi=runif(M, min(opt[,2]), max(opt[,2])),
+                   sig=runif(M, min(opt[,3]), max(opt[,3])),
+                   tau=runif(M, min(opt[,4]), max(opt[,4])))
+samp$v <- apply(samp, 1, function(x) optim(5, fn=f2, lower=2, upper=1000, 
+                                                    m=m, rho=x[1], pi=x[2], tau=x[4], l=l, t=t, b=b, c=c, d=d, sig=x[3], lambda=lambda,
+                                                    method="L-BFGS-B")$value)
+
+# Find the m which best evaluates according to g
+rob2 <- (2:10)[which.max(sapply(2:10, g2, m=m, l=l, t=t, b=b, c=c, d=d, lambda=lambda, vs=samp[,5], 
+                        delta=0.03, samp=samp))]
+rob2
+
+# Get value of a fixed design for comparison
+opt$v_fix <- f2(k=rob2, m, opt[,1], opt[,2], opt[,4], l, t, b, c, d, opt[,3], lambda)
+
+ggplot(opt, aes(rho, pi, z=-(v - v_fix), colour=as.factor(..level..))) + geom_contour(breaks= seq(0.01, 0.05, 0.01)) +
+  facet_wrap(sig ~ tau) + 
+  theme_minimal() +
+  theme(legend.position="bottom") +
+  scale_colour_discrete(name = "Difference in value") +
+  xlab("Intracluster correlation") + ylab("Cluster autocorrelation")
+  
+#ggsave("./paper/figures/fixed_sw_k.pdf", width = 15, height = 15, units="cm")
+#ggsave("./paper/figures/fixed_sw_k.eps", width = 15, height = 15, units="cm", device = cairo_ps())
+```
 
 ## Discussion
 
@@ -419,6 +1653,41 @@ Looking at precision (in this case the standard error of a mean difference) does
 So really, power can be thought of as a value function on precision/information, as it encapsulates the fact that after a point, extra precision is not useful for us because we will already have enough to reliably make our decisions. It gives us a better idea of how much precision we need for the question at hand.
 
 Does this hold up? Increasing precision can let us decrease the portion of parameter space wehere decisions will be random. 
+
+```{r}
+n <- 100; d <- 0.3; sig <- 1
+power.t.test(n=n, delta=d, sd=sig)$power
+
+pnorm(d/sqrt(2*sig/n) - qnorm(0.975))
+
+lambda <- 0.0025
+
+f <- function(n, lambda)
+{
+  -(dnorm(d*sqrt(n)/sqrt(2*sig^2) - qnorm(0.975))*d/sqrt(8*n*sig^2) - lambda)
+}
+
+g <- function(n, lambda)
+{
+  -(pnorm(d*sqrt(n)/sqrt(2*sig^2) - qnorm(0.975)) - lambda*n)
+}
+
+f <- function(x)
+{
+  v <- max(pnorm(d*sqrt(1:5000)/sqrt(2*x[1]^2) - qnorm(0.975)) - x[2]*(1:5000))
+  
+  cn <- ceiling((qnorm(0.8) + qnorm(0.975))^2*x[1]^2*2/d^2)
+  c <- max(pnorm(d*sqrt(cn)/sqrt(2*x[1]^2) - qnorm(0.975)) - x[2]*(cn))
+  
+  v - c
+}
+
+df <- expand.grid(sig = seq(0.01, 1, l=100),
+                  lambda = seq(0.0001, 0.1, l=100))
+df$o <- apply(df, 1, f)
+
+ggplot(df, aes(sig, lambda, z=o)) + stat_contour()
+```
 
 # Superceded
 
@@ -912,3 +2181,201 @@ $$
 so for fixed $n_p$ the extedned value is a linear transformation of the mian trial value.
 
 What does change is the value function. As the pilot size increases the break even point where $v = 0$ reduces - for example when $n_p = 12$ it is at $\sigma \approx 2.81$, not 2.98 as before when $n_p = 0$.
+
+# cRCT + SW
+
+```{r}
+clus_pow2 <- function(x, var_w, rho)
+{
+  n <- x; m <- 18; k <- n/m
+  var_b <- rho*var_w/(1-rho)
+  clus_var <- var_b + var_w/m
+  power.t.test(n=k, delta=0.3, sd=sqrt(clus_var))$power
+}
+
+# Plot the motivating example, with two nuisance parameters power curves
+df <- data.frame(n=seq(2,700,20))
+df$k <- df$n/18
+df <- rbind(df, df)
+df$rho <- c(rep(0.02, nrow(df)/2), rep(0.07, nrow(df)/2))
+df$p <- apply(df, 1, function(x) clus_pow(x[2:1], var_w=1, rho=x[3]))
+
+grad(clus_pow2, 262, var_w=1, rho=0.02)
+
+ggplot(df, aes(n, p, colour=as.factor(rho))) + geom_line() +
+  geom_hline(yintercept = 0.8, linetype=2) +
+  ylab("Power") + xlab("Sample size") +
+  scale_y_continuous(breaks=seq(0,1,0.2)) +
+  theme(panel.grid.major = element_line(colour = "grey50")) +
+  theme(panel.grid.minor = element_line(colour = "grey80")) +
+  scale_colour_manual(values=cols) +
+  labs(colour = "ICC") +
+  theme_minimal() +
+  geom_point(data=data.frame(n=c(262,442), p=c(0.8,0.8), rho=c(0.02, 0.07)), shape=16, size=2) +
+  geom_abline(intercept = 0.8 - 0.001592332*262, slope = 0.001592332, linetype=3) + 
+  geom_abline(intercept = 0.16, slope = 0.001592332, linetype=3) +
+  geom_point(data=data.frame(n=280, p=0.61, rho=0.07), shape=3, size=2, stroke=2)
+
+ggsave("./presentations/cRCT+SW 2019/motivate.png", height=9, width=15, units="cm", bg = "transparent")
+```
+
+
+```{r}
+clus_pow <- function(x, var_w, rho)
+{
+  k <- x[1]; n <- x[2]; m <- n/k
+  var_b <- rho*var_w/(1-rho)
+  clus_var <- var_b + var_w/m
+  power.t.test(n=k, delta=0.3, sd=sqrt(clus_var))$power
+}
+
+# plot power function to find value params
+df <- expand.grid(k=seq(10, 40, 5), n=seq(2,700,20))
+df$pow <- apply(df, 1, clus_pow, var_w=1, rho=0.05)
+
+ggplot(df, aes(n, pow, group=k, colour=as.factor(k))) + geom_line() +
+  geom_point(data=data.frame(k=15, n=470, pow=clus_pow(c(15, 470), 1, 0.05)), colour="red") +
+  theme_minimal()
+
+#ggsave("./paper/figures/cluster_pow.pdf", height=9, width=14, units="cm")
+
+des <- c(25, 500) # 90
+des <- c(20, 360) # 80
+clus_pow(des, 1, 0.05)
+lambda <- grad(clus_pow, des, var_w=1, rho=0.05)
+
+# Plot the optimal designs as we vary rho
+
+f <- function(x, var_w, rho)
+{
+  pow <- clus_pow(x, var_w, rho)
+  -(pow - sum(lambda*x))
+}
+
+opt <- expand.grid(var_t=1, rho=seq(0,0.25,0.001))
+opt <- cbind(opt, t(apply(opt, 1, function(x) optim(c(10,10), fn=f, lower=c(2,2), upper=c(70,1000), var_w=x[1], rho=x[2], method="L-BFGS-B")$par)))
+names(opt)[3:4] <- c("k", "n")
+
+ggplot(opt, aes(rho)) + geom_line(aes(y=k), colour=cols[3]) + geom_line(aes(y=n/k), colour=cols[4]) +
+  theme_minimal() + xlab("Intracluster correlation coefficient (ICC)") + ylab("")
+
+ggsave("./presentations/cRCT+SW 2019/opt_ssr.png", height=9, width=11, units="cm", bg = "transparent")
+```
+
+```{r}
+opt$v <- apply(opt, 1, function(x) f(x[3:4],x[1],x[2]))
+
+rob <- opt
+rob$k <- des[1]
+rob$n <- des[2]
+opt$v2 <- apply(rob, 1, function(x) f(x[3:4],x[1],x[2]))
+opt$d <- opt$v - opt$v2
+
+# get optimal conventional design, assuming m = 20
+
+f2 <- function(x, var_w, rho)
+{
+  pow <- clus_pow(x, var_w, rho)
+  sum(lambda*x) + 10000*(0.8-pow)^2
+}
+
+opt <- cbind(opt, t(apply(opt, 1, function(x) optim(c(10,100), fn=f2, lower=c(2,2), upper=c(100,1000), var_w=x[1], rho=x[2], method="L-BFGS-B")$par)))
+names(opt)[8:9] <- c("k2", "n2")
+
+ggplot(opt, aes(rho)) + 
+  geom_line(aes(y=-v), colour=cols[1]) +
+  geom_line(aes(y=-v2), colour=cols[2]) +
+  geom_line(aes(y=-d), colour=cols[8], linetype=2) +
+  theme_minimal() + xlab("Intracluster correlation coefficient (ICC)") + 
+  ylab("Value")
+
+ggsave("./presentations/cRCT+SW 2019/value.png", height=9, width=11, units="cm", bg = "transparent")
+```
+
+```{r}
+# Get true power of each of these designs when rho = 0.05
+opt$p <- apply(opt, 1, function(x) clus_pow(x[3:4], 1, 0.05))
+opt$p2 <- apply(opt, 1, function(x) clus_pow(x[8:9], 1, 0.05))
+
+var_c <- 0.1026316; var_b <- var_c - 1/18
+vb_est <- var_b*rchisq(10^3, 11)/11 
+rho_est <- vb_est/(vb_est + 1) 
+rho_ind <- round(rho_est, 3)*1000 
+k_est <- opt[rho_ind,"k"]; n_est <- opt[rho_ind,"n"]; m_est <- n_est/k_est 
+k2_est <- opt[rho_ind,"k2"]; n2_est <- opt[rho_ind,"n2"]
+p_est <- opt[rho_ind,"p"]; p2_est <- opt[rho_ind,"p2"]
+
+hi <- data.frame(rho=rho_est, k=k_est, n=n_est, k2=k2_est, n2=n2_est, p=p_est, p2=p2_est)
+
+ggplot(hi, aes(rho)) + geom_density(fill=cols[1], alpha=0.2) +
+  theme_minimal() + xlab("Estimated ICC sampling distribution") +
+  theme(panel.background = element_blank()) +
+  theme(
+    plot.background = element_blank()
+   ,panel.grid.major = element_blank()
+   ,panel.grid.minor = element_blank()
+   ,panel.border = element_blank()
+  )
+
+ggsave("./presentations/cRCT+SW 2019/ICC.png", height=5, width=8, units="cm", bg = "transparent")
+
+hi2 <- data.frame(k=c(k_est, k2_est), n=c(n_est, n2_est), p=c(p_est, p2_est), t=c(rep("Value-based", length(vb_est)), rep("Constrained", length(vb_est))))
+
+ggplot(hi2, aes(t, n, fill=t)) + geom_boxplot() +
+  scale_x_discrete(breaks = NULL) +
+  theme_minimal() + xlab("") + ylab("Sample size") +
+  scale_fill_manual(values=cols[5:6], name= "Method") + theme(legend.position="bottom")
+
+ggsave("./presentations/cRCT+SW 2019/SS_dist.png", height=8, width=8, units="cm", bg = "transparent")
+
+ggplot(hi2, aes(t, p, fill=t)) + geom_boxplot() +
+  scale_x_discrete(breaks = NULL) +
+  theme_minimal() + xlab("") + ylab("Power") +
+  scale_fill_manual(values=cols[5:6], name= "Method") + theme(legend.position="bottom")
+
+ggsave("./presentations/cRCT+SW 2019/pow_dist.png", height=8, width=8, units="cm", bg = "transparent")
+```
+
+```{r}
+s <- 1; n <- 200; mu <- 0.3
+c <- qnorm(0.975)*sqrt(2/n)
+
+z <- rnorm(100, mu, sqrt(2/200))
+
+mean(z > c)
+mean(z[z > c])
+
+pow <- function(n)
+{
+  1 - pnorm(qnorm(0.975)*sqrt(2*s/n), 0.3, sqrt(2*s/n))
+}
+
+bias <- function(n)
+{
+  # Bias of the effect estimate when conditioning on a signifcant result (z > c)
+  (dnorm(qnorm(0.975) - 0.3/sqrt(2*s/n)) / (1 - pnorm(qnorm(0.975) - 0.3/sqrt(2*s/n))))*sqrt(2*s/n)
+}
+
+ns <- 100:300
+plot(ns, bias(ns)/mu)
+plot(pow(ns), bias(ns))
+
+s <- 1; n <- 200; mu <- 0.3
+c <- qnorm(0.975)*sqrt(2/n)
+
+ps1 <- ps2 <- NULL
+for(i in 1:10000){
+  z <- rnorm(100, mu, sqrt(2/n))
+  ps1 <- c(ps1, 1-pnorm(c, mu, sd(z)))
+  ps2 <- c(ps2, mean(z > c))
+}
+
+```
+
+
+
+
+
+EVSI
+
+Rather than optimising over splines, suppose we optimise over the individual samples. Doing this directly doesn't work, as we end up with an over-fitted and not continuous function. 

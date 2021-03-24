@@ -1,10 +1,11 @@
 ---
-title: "Untitled"
-author: "Duncan T. Wilson"
-date: "18/07/2019"
+title: "Robust, value-based sample size determination for clinical trials when nuisance parameters are unknown"
+author: Duncan T. Wilson
+  | Leeds Institute of Clinical Trials Research
+date: "01/08/2019"
 output: 
   ioslides_presentation:
-    logo: UoL_logo3.png
+    smaller: true
 #runtime: shiny
 ---
 
@@ -12,100 +13,331 @@ output:
 require(ggplot2)
 require(plotly)
 require(numDeriv)
-knitr::opts_chunk$set(echo = FALSE, eval=F)
+require(mgcv)
+require(gganimate)
+require(magick)
+require(RColorBrewer)
+cols <- brewer.pal(8, "Dark2")
+knitr::opts_chunk$set(echo = FALSE, eval=T, warning = F)
 ```
+
+# Motivation
 
 ## Background {data-background=CTRU-corner-&-logo.png data-background-position="left bottom" data-background-size=20%}
 
-Conventional SSD - constrained optimisation
+"Textbook" sample size caclulation for a normal endpoint:
 
-Sensitive to nuisance parameters: variance components, control arm rates
+$$
+\begin{aligned}
+\min_{n \in \mathbf{N}} ~ & n \\
+\text{subject to } ~ & g(n, \mu, {\color{red}{\sigma}}) \geq {\color{blue}{1 - \beta^*}}
+\end{aligned}
+$$
+$g(n, \mu, {\color{red}{\sigma}})$ - power of the trial.
 
-## The Threshold Myth
+${\color{red}{\sigma}}$ - an _unknown_ nuisance parameter.
 
-Using conventional SSD procedure makes sense if there is a threshold - but this is a myth
+${\color{blue}{1 - \beta^*}}$ - a power threshold.
 
-## Incoherence - an example
+## Incoherence {data-background=CTRU-corner-&-logo.png data-background-position="left bottom" data-background-size=20%}
 
-Continuous normal with unknwon SD
+Minimial Clinically Imortant Difference: $\mu = 0.3$
 
-Plot shoiwing how n varies with SD - animate
+Power threshold: $1 - \beta^* = 0.8$
 
-## Samba
+Universe A: $\hat{\sigma} = 1 \rightarrow n = 175$
 
-Is constrained opt for SSD incoherent?
+Universe B: $\hat{\sigma} = 1.3 \rightarrow n = 296$
 
-Not in practice - becuase of the sample size samba
+Same effect to be detected, same power, but different sample size.
 
-We do balance sampling costs and power (e..g. choosing a low power trial if 80\% was bad value), but in a sneaky way
+More generaly, as nuisnace parameter varies, so does the amount we are willing to invest in a study to get 80\% power to detect $\mu = 0.3$.
 
-Example - shiny, showing the petend power and the actual power
+## Sample Size Samba {data-background=CTRU-corner-&-logo.png data-background-position="left bottom" data-background-size=20%}
 
-## Incoherence in SSR
+<img src="Samba.jpg" alt="drawing" width="600"/>
 
-Suppose we inflate in SSR
+## Sample Size Samba {data-background=CTRU-corner-&-logo.png data-background-position="left bottom" data-background-size=20%}
 
-No flexibility to samba - already declared the MCID
+<img src="Samba_paper.png" alt="drawing" width="800"/>
 
-So, SSR is an incoherent procedure
+## Sample Size Samba {data-background=CTRU-corner-&-logo.png data-background-position="left bottom" data-background-size=20%}
+```{r}
+    mu1 <- 0.3
+    mu2 <- 0.4
+    sig <- 1.3
+    
+    df <- data.frame(n=2:400)
+    df$p1 <- sapply(df$n, function(n) pnorm(mu1/sqrt(2*sig/n) - qnorm(0.975)))
+    df$p2 <- sapply(df$n, function(n) pnorm(mu2/sqrt(2*sig/n) - qnorm(0.975)))
+    
+    n_opt1 <- df[df$p1 > 0.8,][1,1]
+    n_opt2 <- df[df$p2 > 0.8,][1,1]
+    
+    tru_p <- df[df$n==n_opt2, "p1"]
+    
+    df <- data.frame(n=rep(df$n, 2), p=c(df$p1, df$p2), t=c(rep("r", nrow(df)), rep("f", nrow(df))))
+    
+     pl <-  ggplot(df, aes(n, p, colour=t, text=round(p,2))) + geom_line() +
+      geom_segment(aes(x=n_opt2, xend=n_opt2, y=0.8, yend=0),linetype=2, colour="black") +
+      geom_point(data=data.frame(n=n_opt2, p=tru_p, t="r"), shape=1, size=3, colour="black") +
+      annotate("text", x=320, y=0.83, 
+               label = paste0("Real MCID = ", mu1), colour=cols[2]) +
+      annotate("text", x=30, y=0.65,
+               label = paste0("Fake MCID = ", mu2), colour=cols[1]) +
+      scale_y_continuous(breaks = seq(0,1,0.2)) +
+      scale_color_manual(values=cols, guide=F) +
+      theme_minimal() + ylab("Power") + xlab("Sample size")
+    
+p <- ggplotly(pl, tooltip = c("n", "text"))
+hide_legend(p)
+```
 
-## Proposal
+## Sample size re-estimation {data-background=CTRU-corner-&-logo.png data-background-position="left bottom" data-background-size=20%}
 
-We should design based on some explicit combination of cost and benefit 
+- Suppose we have an initial estimate $\hat{\sigma}$ = 1
+- Then we choose $n = 175$ for 80% power to detect $\mu = 0.3$
+- Bu twe then get an interim estimate of $\hat{\sigma} = 1.3 \rightarrow$ inflate sample size to $n =  296$...
 
-We aleardy do this in SSD, but not in a transparent way and therefore not as well as we could
+No flexibility to samba - already declared $\mu = 0.3$.
 
-Would elimante incoherence from SSR, so we can better deal with nuisance parameter uncertainty (which is everywhere)
+$\rightarrow$ Sample size re-estimation is incoherent.
 
-We will show that it could actually free us from the need to do SSR - good for situations where interim analysis would be hard (e.g. long term endpoint) or where the nuisance parameter is hard to estimate (e.g. ICC - ref to Eldridge paper and the other SSR cluster one?)
+# Methods
 
-## Method
+## Proposal {data-background=CTRU-corner-&-logo.png data-background-position="left bottom" data-background-size=20%}
 
-Simple weighted of sum of power and sample size.
+We should:
 
-Assumptions: linear cost and linear benefit in power. Latter is a bit shaky - e.g. very high power at the MCID will also lead to high power not far from the null. But for the scales we are interested in it is probably a safe assumption. And in that example, the rate of increase in power would be tiny, so perhaps OK even then.
+- design trials by considering both costs (sample size) and benefit (power);
+- do so in an explicit, transparent way;
+- use the same methodology for an initial sample size calculation as for a re-estimation.
 
-Implications: e.g. moving from 20 to 25% is of the same value as moving from 75 to 80\%
+This would:
 
-If we do an SSR re-estimation, compare the joint distributions of power, n, and value for both methods. As we would expect from previous slide, if we misspecify the SD our SSR precedure will have much less variability in n (but now giving some variability in power)
+- make sample size re-estimation a coherent procedure, and so give us a useful tool for dealing with nuisance parameter uncertainty;
+- may elimiante the need for SSR altogether.
 
-## Fixed designs
+## Value function {data-background=CTRU-corner-&-logo.png data-background-position="left bottom" data-background-size=20%}
 
-... but we can go further.
+Choose $n$ to maximise _value_, denoted $v(n, \sigma)$, a weighted sum of power and sample size:
 
-Suppose we don't want t, or can't, do an interim SSR (e.g. nuisance parameter is very hard to estimate with a small sample, e.g. ICC)
+$$
+\max_{n} v(n, \sigma) = g(n, \sigma) - \lambda n
+$$
 
-Take our initial design, and compare its value over SD with the value of the best design.
+Implicit assumptions about value:
 
-We see there isn't much difference for a large range of SD - so an interim analysis is of little value.
+- Linear in sample size;
+- Linear in power;
+- Sample size and power are _preferentially independant_ - i.e. our preferences about sample size are independant of power, and vice versa.
 
-Plotly so we can see the difference in value at different points
+## Illustration {data-background=CTRU-corner-&-logo.png data-background-position="left bottom" data-background-size=20%}
 
-## Optimality criteria
+Two arm parralel group trial comparing group means of normally distributed outcome.
 
-If we want to use a fixed design, how to choose one?
+Difference to detect: 0.3
 
-We could do a minimax - over some sd range, choose design with the best worst case value. But, sensitive to the range end points.
+Best guess of standard deviation: 1 
 
-Alternative - choose the design which maximises the param space size where value is within a tolerable distance from the optimal.
+Trade-off parameter $\lambda$: 0.0022
 
-## Example 1: cluster RCT
+($\rightarrow n = 175$ under both frameworks)
 
-Sample size is number of clusters - cluster size is fixed.
+## Illustration {data-background=CTRU-corner-&-logo.png data-background-position="left bottom" data-background-size=20%}
 
-Uncertainty in the two variance components (although assumed common across arms)
+```{r, eval=T, gganimate = list(fig.width = 50)}
+lambda  <- 0.0022
 
-Take conventional design and extract value function parameters.
+df <- expand.grid(n=seq(10,700,10), sig=seq(0.3,2,0.01))
+df$pow <- apply(df, 1, function(x) power.t.test(n=x[1], delta=0.3, sd=x[2])$power)
+df$v <- df$pow - lambda*df$n
 
--------
+f <- function(n, sig)
+{
+  pow <- power.t.test(n=n, delta=0.3, sd=sig)$power
+  -(pow - lambda*n)
+}
 
-Plot optimal sample size over param space. Just a lablelled contour plot?
+opt <- data.frame(sig=seq(0.3,2,0.01), n=1)
+opt$n <- sapply(opt$sig, function(x) optim(10, f, method="Brent", lower=2, upper=400, sig=x)$par)
+opt$pow <- apply(opt, 1, function(x) power.t.test(n=x[2], delta=0.3, sd=x[1])$power)
+opt$inter <- opt$pow - lambda*opt$n
 
-Plot differnce of value of conventional design and optimal design
+tangent <- df[,1:2]
+tangent$pow <- apply(tangent, 1, function(x, opt) opt[opt$sig == x[2],]$inter + lambda*x[1], opt=opt)
 
-Search for best fixed design - do this manually, working along k values, plotting the covered area, and plotting the result.
+const <- data.frame(sig=seq(0.3,2,0.01), n=1)
+const$n <- sapply(const$sig, function(s) power.t.test(delta=0.3, sd=s, power=0.8)$n)
+const$pow <- 0.8
 
-------
+#ggplot(df, aes(n, pow, colour=sig, group=as.factor(sig))) + geom_line() +
+#  geom_point(data=opt, colour="red") +
+#  geom_vline(xintercept = max(opt$n), linetype=2, colour="red")
+
+p <- ggplot(df, aes(n, pow, group=sig)) + geom_line() +
+  geom_point(data=opt, colour=cols[1]) + geom_line(data=tangent, colour=cols[1], linetype=2) +
+  geom_point(data=const, colour=cols[2]) + #geom_hline(yintercept = 0.8, colour=cols[2], linetype=2) +
+  ylab("Power") + scale_y_continuous(breaks=seq(0,1,0.2), limits=c(0,1)) + theme_minimal() + xlab("Sample size") +
+  transition_states(sig)
+ 
+animate(p, nframes=684, duration=2, rewind=T)
+```
+
+## Illustration {data-background=CTRU-corner-&-logo.png data-background-position="left bottom" data-background-size=20%}
+
+```{r, eval=T, gganimate = list(fig.width = 50)}
+p2 <- ggplot(opt, aes(y=n, group=sig)) + 
+  geom_point(aes(x=sig), colour=cols[1], size=2) + 
+  geom_point(data=const, aes(x=sig), colour=cols[2], size=2) +
+  geom_line(data=data.frame(sig2=opt$sig, n=opt$n), aes(x=sig2), colour=cols[1]) +
+  geom_line(data=data.frame(sig2=const$sig, n=const$n), aes(x=sig2), colour=cols[2]) +
+  theme_minimal() + ylab("Sample size") + xlab("Standard deviation") +
+  transition_states(sig)
+
+animate(p2, nframes=684, duration=2, rewind=T)
+```
+
+```{r, eval=F}
+a_mgif <- image_read(a_gif)
+b_mgif <- image_read(b_gif)
+
+new_gif <- image_append(c(a_mgif[1], b_mgif[1]))
+for(i in 2:40){
+  combined <- image_append(c(a_mgif[i], b_mgif[i]))
+  new_gif <- c(new_gif, combined)
+}
+
+new_gif
+```
+
+## Fixed designs {data-background=CTRU-corner-&-logo.png data-background-position="left bottom" data-background-size=20%}
+
+$\rightarrow$ A value-based approach will lead to a coherent framework for sample size re-estimation, with less variability in $n$ but more variability in power.
+
+But, we can go further - in some cases, we don't need to do re-estimation at all.
+
+## Fixed designs {data-background=CTRU-corner-&-logo.png data-background-position="left bottom" data-background-size=20%}
+
+```{r, eval=T}
+opt$v <- apply(opt, 1, function(x) -f(x[2], x[1]))
+
+fix <- data.frame(sig = opt$sig)
+fix$n <- 175
+fix$pow <- apply(fix, 1, function(x) power.t.test(n=x[2], delta=0.3, sd=x[1])$power)
+fix$v <- apply(fix, 1, function(x) -f(x[2], x[1]))
+fix$d <- opt$v - fix$v
+fix$d2 <- round(fix$d, 2)
+
+opt$d <- fix$d2
+
+p <- ggplot(opt, aes(sig, n, text=round(d,2))) + geom_line() +
+  geom_line(aes(y=300*v), colour=cols[1]) +
+  geom_line(data= fix, aes(y=300*v), colour=cols[2]) +
+  geom_line(data=fix, aes(y=300*d), colour=cols[3]) +
+  annotate("text", x=0.6, y=260, label="Value of optimal n", colour=cols[1]) +
+  annotate("text", x=0.45, y=165, label="Value of n = 175", color=cols[2]) + 
+  annotate("text", x=0.8, y=35, label="Difference in value", color=cols[3]) +
+  theme_minimal() + ylab("Sample size") + xlab("Standard deviation")
+
+ggplotly(p, tooltip = c("text","sig"))
+```
+
+How does the value of a fixed design compare with a re-estimated design, when there is noise in the estimate? For each true SD, and for an interim analysis n, get the distribution of re-estimated ns and their true value.
+
+```{r}
+get_s_prob <- function(sig, s, n)
+{
+  # sig_hat^2 ~ sig^2 \chi_(2n-1) / (2n-1)
+  pchisq( ((2*n-1)*s^2)/sig^2 , df=2*n-1)
+}
+
+ssr <- data.frame(sig=opt$sig)
+ss <- opt$sig
+for(s in ss){
+  #get cum prob of getting an s estimate
+  ssr <- cbind(ssr, s=sapply(ssr$sig, get_s_prob, s=s, n=50))
+}
+
+get_s_quant <- function(sig, ssr, q)
+{
+  which(ssr[ssr$sig==sig,] > q)[2]-1
+}
+
+get_n_quants <- function(sig, int_n, opt)
+{
+  df <- data.frame(n=1:250, probs=1)
+  m <- which.max(opt$n)
+  opt1 <- opt[1:m,]
+  opt2 <- opt[(m+1):nrow(opt),]
+  for(n in 1:200){
+    lo_s <- opt1$sig[tail(which(opt1$n < n), n=1)]
+    hi_s <- opt2$sig[head(which(opt2$n < n), n=1)]
+    add <- 0
+    if(length(lo_s != 0)) add <- add + pchisq( ((2*int_n-1)*lo_s^2)/sig^2 , df=2*int_n-1)
+    if(length(hi_s != 0)) add <- add + 1 - pchisq( ((2*int_n-1)*hi_s^2)/sig^2, df=2*int_n-1)
+    df[n,2] <- ifelse(length(add) == 0, 0, add)
+  }
+  c(df[df$probs > 0.05,][1,1], df[df$probs > 0.5,][1,1], df[df$probs > 0.95,][1,1])
+}
+
+opt <- opt[,1:6]
+opt <- cbind(opt, t(sapply(opt$sig, get_n_quants, int_n=20, opt=opt)))
+names(opt)[7:9] <- c("lo_n", "med_n", "hi_n")
+
+#opt$lo_s <- sapply(opt$sig, get_s_quant, ssr=ssr, q=0.05)
+#opt$med_s <- sapply(opt$sig, get_s_quant, ssr=ssr, q=0.5)
+#opt$hi_s <- sapply(opt$sig, get_s_quant, ssr=ssr, q=0.95)
+
+#opt$lo_n <- sapply(opt$lo_s, function(p) opt[p, "n"])
+#opt$med_n <- sapply(opt$med_s, function(p) opt[p, "n"])
+#opt$hi_n <- sapply(opt$hi_s, function(p) opt[p, "n"])
+
+opt$lo_v <- apply(opt, 1, function(x) -f(x[7],x[1]))
+opt$med_v <- apply(opt, 1, function(x) -f(x[8],x[1]))
+opt$hi_v <- apply(opt, 1, function(x) -f(x[9],x[1]))
+
+sim_value <- function(sig, n, opt)
+{
+  s <- round(sqrt(rchisq(1, 2*n-1)*sig*sig/(2*n-1)), 2)
+  opt[which(sapply(opt$sig, all.equal, s)==T), "n"]
+}
+
+ssr <- data.frame(sig = rep(opt$sig,100))
+n_int <- 50
+ssr$s <- sapply(ssr$sig, function(sig, n) sqrt(rchisq(1, 2*n-1)*sig*sig/(2*n-1)), n=n_int)
+ssr$n <- sapply(ssr$s, function(x) optim(10, f, method="Brent", lower=2, upper=400, sig=x)$par)
+ssr$v <- apply(ssr, 1, function(x) -f(x[3],x[1]))
+
+fit <- gam(v ~ s(sig, bs="cs"), data=ssr)
+plot(fit, residuals = T)
+
+ggplot(opt, aes(sig, n)) + geom_line() +
+  geom_line(aes(y=300*v), colour=cols[1]) +
+  geom_line(data= fix, aes(y=300*v), colour=cols[2]) +
+  #stat_smooth(data=ssr, aes(sig, 300*v)) +
+  geom_point(data=ssr,  aes(sig, n), alpha=0.01, siz=0.1) +
+  #geom_point(data=ssr,  aes(sig, 300*v), alpha=0.05, siz=0.1) +
+  theme_minimal() + ylab("Sample size") + xlab("Standard deviation")
+
+```
+
+# Example
+
+## Example: cluster RCT {data-background=CTRU-corner-&-logo.png data-background-position="left bottom" data-background-size=20%}
+
+$$
+n = n_i(\sigma_t) [1 + (m-1)\rho]
+$$
+$n_i(\sigma_t)$ = sample size for an individually randomised trial with no clustering and the same total variance, $\sigma_t^2$.
+
+$\rho =$ Intacluster correlation coeffieint (ICC) - proportion of the total variance due to variability between clusters.
+
+$m =$ number of participants per cluster
+
+$k = $ number of clusters
+
+## Example: cluster RCT {data-background=CTRU-corner-&-logo.png data-background-position="left bottom" data-background-size=20%}
 
 ```{r}
 clus_pow <- function(x, var_t, rho)
@@ -128,7 +360,7 @@ ggplotly(p, tooltip = c("group", "x", "y"))
 #des <- c(25, 450)
 des <- c(15, 470)
 #des <- c(25, 270)
-clus_pow(des, 1, 0.05)
+#clus_pow(des, 1, 0.05)
 lambda <- grad(clus_pow, des, var_t=1, rho=0.05)
 ```
 
@@ -145,16 +377,13 @@ names(df)[3:4] <- c("k", "n")
 df$v <- apply(df, 1, function(x) get_value(x[3:4],x[1],x[2]))
 ```
 
-## Shiny
+## Example: cluster RCT {data-background=CTRU-corner-&-logo.png data-background-position="left bottom" data-background-size=20%}
+
+Number of clusters: 15
+Number of participants: 470
 
 ```{r}
-numericInput("k", "How many clusters?", des[1])
-numericInput("n", "How many patients?", des[2])
-numericInput("tol", "How tolerable?", 0.01)
-
-rmarkdown::render_delayed({
-  renderPlot({
-    des <- c(input$k, input$n)
+tol <- 0.03
     
     df2 <- df
     df2$k <- des[1]
@@ -165,12 +394,96 @@ rmarkdown::render_delayed({
       
     ggplot(df2, aes(var_t, rho, z=d, colour=..level..)) +
       geom_contour(breaks=seq(-0.00,-0.1,-0.01)) +
-      geom_contour(breaks=c(-input$tol), colour="red") +
-      ylab(expression(rho)) + xlab(expression(sigma[t]^2)) +
+      geom_contour(breaks=c(-tol), colour="red") +
+      ylab("ICC") + xlab("Total variance") +
       theme_minimal()
+```
+
+## Example: cluster RCT {data-background=CTRU-corner-&-logo.png data-background-position="left bottom" data-background-size=20%}
+
+Number of clusters: 18
+Number of participants: 500
+
+```{r}
+des <- c(18, 500)
+tol <- 0.03
+    
+    df2 <- df
+    df2$k <- des[1]
+    df2$n <- des[2]
+    df2$v <- apply(df2, 1, function(x) get_value(des,x[1],x[2]))
+    
+    df2$d <- df$v - df2$v
+      
+    ggplot(df2, aes(var_t, rho, z=d, colour=..level..)) +
+      geom_contour(breaks=seq(-0.00,-0.1,-0.01)) +
+      geom_contour(breaks=c(-tol), colour="red") +
+      ylab("ICC") + xlab("Total variance") +
+      theme_minimal()
+```
+
+
+## Discussion {data-background=CTRU-corner-&-logo.png data-background-position="left bottom" data-background-size=20%}
+
+Summary
+
+- Sample size calculations can be incoherent when nuisance parameters are unknown.
+- Value-based trial design can lead to coherent decisions and facilitate sample size re-estimation.
+- In some cases, re-estimation can be avoided altogether.
+
+Further work
+
+- How to choose optimal fixed designs?
+- Do our value function assumptions hold?
+- Would precision be a better measure of value than power?
+- Are 'underpowered' trials unethical?
+
+# Thank you | \@DTWilson, D.T.Wilson@leeds.ac.uk, https://github.com/DTWilson/Robust_value
+
+`r knitr::knit_exit()`
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r, eval=F}
+numericInput("mu2", "Fake MCID:", 0.3, step = 0.01)
+numericInput("sig", "Estimated SD:", 1, step = 0.1)
+
+rmarkdown::render_delayed({
+  renderPlot({
+    mu1 <- 0.3
+    mu2 <- input$mu2
+    
+    df <- data.frame(n=2:400)
+    df$p1 <- sapply(df$n, function(n) pnorm(mu1/sqrt(2*input$sig/n) - qnorm(0.975)))
+    df$p2 <- sapply(df$n, function(n) pnorm(mu2/sqrt(2*input$sig/n) - qnorm(0.975)))
+    
+    n_opt1 <- df[df$p1 > 0.8,][1,1]
+    n_opt2 <- df[df$p2 > 0.8,][1,1]
+    
+    tru_p <- df[df$n==n_opt2, "p1"]
+    
+    ggplot(df, aes(n)) + geom_line(aes(y=p1)) + geom_line(aes(y=p2)) +
+      geom_hline(yintercept = 0.8, colour=cols[1], linetype=2) +
+      #geom_segment(aes(x=n_opt1, xend=n_opt1, y=df[df$n==n_opt1,2], yend=0), colour=cols[3], linetype=3) +
+      geom_segment(aes(x=n_opt2, xend=n_opt2, y=df[df$n==n_opt2,3], yend=0), colour=cols[3], linetype=3) +
+      geom_point(data=df[df$n==n_opt2, 1:2], aes(y=p1), shape=1, size=3) +
+      annotate("text", x=n_opt2+40, y=df[df$n==n_opt2,2]-0.02, 
+               label = paste0("Actual power = ", round(df[df$n==n_opt2,2], 2))) +
+      theme_minimal() + ylab("Power") + xlab("Sample size")
   })
 })
 ```
+
 
 ## Example 2: Surivival
 
@@ -192,7 +505,7 @@ Plot value of best fixed design.
 
 =========
 
-```{r}
+```{r, eval=F}
 # see chapter 9, D.Collet Modelling survival data in medical research
 s_bar <- function(x, med1, med2)
 {
@@ -228,7 +541,7 @@ lambda <- grad(get_pow, c(23,48), med1=4.5)
 ```
 
 
-```{r}
+```{r, eval=F}
 get_value <- function(x, med1, lambda)
 {
   pow <- get_pow(x, med1)
@@ -258,15 +571,15 @@ ggplot(df, aes(a, t-a, colour=med1)) + geom_point() +
   theme_minimal()
 
 # Optimal and fixed design values
-p <- ggplot(df2, aes(x=med1, text=round(df2$d, 2))) + geom_line(aes(y=v)) + geom_line(aes(y=-d), colour="blue") +
+p <- ggplot(df2, aes(x=med1, text=round(d, 2))) + geom_line(aes(y=v)) + geom_line(aes(y=-d), colour="blue") +
   geom_line(data=df, aes(y=v), colour="red") + 
   xlab("Median survival time") + ylab("Value") +
   theme_minimal()
 
-ggplotly(p)
+ggplotly(p, tooltip = c("med1", "text"))
 ```
 
-```{r}
+```{r, eval=F}
 coverage <- function(fixed, fit, diff, lambda)
 {
   f <- function(x, fixed, lambda, fit, diff)
@@ -285,7 +598,7 @@ opt <- optim(c(20,47), coverage, fit=fit, diff=diff, lambda=lambda,
 ```
 
 
-```{r}
+```{r, eval=F}
 df <- data.frame(x=seq(0,1,0.01))
 df$y1 <- 2*df$x + 0.2
 df$y2 <- 2.1*df$x + 0.25
@@ -299,17 +612,39 @@ p <- ggplot(df, aes(x, label = d)) + geom_line(aes(y=y1), linetype=1) +
 ggplotly(p, tooltip="d")
 ```
 
-## Implementation
+## Shiny
 
-R code
+```{r, eval=F}
+ fluidRow(style = "padding-bottom: 20px;",
+        column(4, numericInput("k", "How many clusters?", des[1])),
+        column(4, numericInput("n", "How many patients?", des[2])),
+        column(4, numericInput("tol", "How tolerable?", 0.01, step=0.01)))
 
-## Discussion
+rmarkdown::render_delayed({
+  renderPlot(width = 800, {
+    des <- c(input$k, input$n)
+    
+    df2 <- df
+    df2$k <- des[1]
+    df2$n <- des[2]
+    df2$v <- apply(df2, 1, function(x) get_value(des,x[1],x[2]))
+    
+    df2$d <- df$v - df2$v
+      
+    ggplot(df2, aes(var_t, rho, z=d, colour=..level..)) +
+      geom_contour(breaks=seq(-0.00,-0.1,-0.01)) +
+      geom_contour(breaks=c(-input$tol), colour="red") +
+      ylab("ICC") + xlab("Total variance") +
+      theme_minimal()
+  })
+})
+```
 
-Alternatives: could look at precision rather than power, but we are more familiar with the latter; and could use more elaborate value function, but will be harder to define / elicit. And we find that sample size keeps increasing with SD - so not intuitively what we want.
+## Optimality criteria {data-background=CTRU-corner-&-logo.png data-background-position="left bottom" data-background-size=20%}
 
-## Conclusion
+If we want to use a fixed design, how should we choose one?
 
-Sample size is not a game - shouldn't be playing with patients
-
-
-
+1. Crtiera (a): Minimax.
+    + over some range of the nuisance parameter, choose design with the best worst case performance.
+2. Criteria (b): Tolerance
+    + Choose the design which maximises the region of nuisance parameter space where its value is within a tolerable distance from the optimal value.

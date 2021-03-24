@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.19 (MiKTeX 2.9.6840 64-bit) (preloaded format=pdflatex 2019.3.21)  26 APR 2019 09:22
+This is pdfTeX, Version 3.14159265-2.6-1.40.19 (MiKTeX 2.9.6840 64-bit) (preloaded format=pdflatex 2019.3.21)  11 AUG 2020 10:09
 entering extended mode
 **./Robust_value.tex
 (Robust_value.tex
@@ -199,8 +199,35 @@ Package: tracefnt 2015/02/21 v3.0k Standard LaTeX package (font tracing)
 \tracingfonts=\count109
 LaTeX Info: Redefining \selectfont on input line 106.
 )
+("C:\Program Files\MiKTeX 2.9\tex\latex\geometry\geometry.sty"
+Package: geometry 2018/04/16 v5.8 Page Geometry
+
+("C:\Program Files\MiKTeX 2.9\tex\generic\oberdiek\ifpdf.sty"
+Package: ifpdf 2018/09/07 v3.3 Provides the ifpdf switch
+)
+("C:\Program Files\MiKTeX 2.9\tex\generic\oberdiek\ifvtex.sty"
+Package: ifvtex 2016/05/16 v1.6 Detect VTeX and its facilities (HO)
+Package ifvtex Info: VTeX not detected.
+)
+("C:\Program Files\MiKTeX 2.9\tex\generic\ifxetex\ifxetex.sty"
+Package: ifxetex 2010/09/12 v0.6 Provides ifxetex conditional
+)
+\Gm@cnth=\count110
+\Gm@cntv=\count111
+\c@Gm@tempcnt=\count112
+\Gm@bindingoffset=\dimen130
+\Gm@wd@mp=\dimen131
+\Gm@odd@mp=\dimen132
+\Gm@even@mp=\dimen133
+\Gm@layoutwidth=\dimen134
+\Gm@layoutheight=\dimen135
+\Gm@layouthoffset=\dimen136
+\Gm@layoutvoffset=\dimen137
+\Gm@dimlist=\toks28
+
+("C:\Program Files\MiKTeX 2.9\tex\latex\geometry\geometry.cfg"))
 \absbox=\box29
-\@bls=\dimen130
+\@bls=\dimen138
 
 (C:\Users\meddwilb\AppData\Roaming\MiKTeX\2.9\tex\latex\caption\caption.sty
 Package: caption 2018/10/06 v3.3-154 Customizing captions (AR)
@@ -208,16 +235,16 @@ Package: caption 2018/10/06 v3.3-154 Customizing captions (AR)
 (C:\Users\meddwilb\AppData\Roaming\MiKTeX\2.9\tex\latex\caption\caption3.sty
 Package: caption3 2018/09/12 v1.8c caption3 kernel (AR)
 Package caption3 Info: TeX engine: e-TeX on input line 64.
-\captionmargin=\dimen131
-\captionmargin@=\dimen132
-\captionwidth=\dimen133
-\caption@tempdima=\dimen134
-\caption@indent=\dimen135
-\caption@parindent=\dimen136
-\caption@hangindent=\dimen137
+\captionmargin=\dimen139
+\captionmargin@=\dimen140
+\captionwidth=\dimen141
+\caption@tempdima=\dimen142
+\caption@indent=\dimen143
+\caption@parindent=\dimen144
+\caption@hangindent=\dimen145
 )
-\c@caption@flags=\count110
-\c@ContinuedFloat=\count111
+\c@caption@flags=\count113
+\c@ContinuedFloat=\count114
 Package caption Info: rotating package is loaded.
 )
 (C:\Users\meddwilb\AppData\Roaming\MiKTeX\2.9\tex\latex\natbib\natbib.sty
@@ -225,7 +252,7 @@ Package: natbib 2010/09/13 8.31b (PWD, AO)
 \bibhang=\skip54
 \bibsep=\skip55
 LaTeX Info: Redefining \cite on input line 694.
-\c@NAT@ctr=\count112
+\c@NAT@ctr=\count115
 ))
 (C:\Users\meddwilb\AppData\Roaming\MiKTeX\2.9\tex\latex\algorithms\algorithm.st
 y
@@ -233,29 +260,29 @@ Package: algorithm 2009/08/24 v0.1 Document Style `algorithm' - floating enviro
 nment
  ("C:\Program Files\MiKTeX 2.9\tex\latex\float\float.sty"
 Package: float 2001/11/08 v1.3d Float enhancements (AL)
-\c@float@type=\count113
-\float@exts=\toks28
+\c@float@type=\count116
+\float@exts=\toks29
 \float@box=\box30
-\@float@everytoks=\toks29
+\@float@everytoks=\toks30
 \@floatcapt=\box31
 )
-\@float@every@algorithm=\toks30
-\c@algorithm=\count114
+\@float@every@algorithm=\toks31
+\c@algorithm=\count117
 )
 (C:\Users\meddwilb\AppData\Roaming\MiKTeX\2.9\tex\latex\algorithmicx\algorithmi
 cx.sty
 Package: algorithmicx 2005/04/27 v1.2 Algorithmicx
 
 Document Style algorithmicx 1.2 - a greatly improved `algorithmic' style
-\c@ALG@line=\count115
-\c@ALG@rem=\count116
-\c@ALG@nested=\count117
+\c@ALG@line=\count118
+\c@ALG@rem=\count119
+\c@ALG@nested=\count120
 \ALG@tlm=\skip56
 \ALG@thistlm=\skip57
-\c@ALG@Lnr=\count118
-\c@ALG@blocknr=\count119
-\c@ALG@storecount=\count120
-\c@ALG@tmpcounter=\count121
+\c@ALG@Lnr=\count121
+\c@ALG@blocknr=\count122
+\c@ALG@storecount=\count123
+\c@ALG@tmpcounter=\count124
 \ALG@tmplength=\skip58
 )
 (C:\Users\meddwilb\AppData\Roaming\MiKTeX\2.9\tex\latex\algorithmicx\algpseudoc
@@ -265,10 +292,10 @@ Package: algpseudocode
 Document Style - pseudocode environments for use with the `algorithmicx' style
 ) ("C:\Program Files\MiKTeX 2.9\tex\latex\tools\array.sty"
 Package: array 2018/04/30 v2.4h Tabular extension package (FMi)
-\col@sep=\dimen138
+\col@sep=\dimen146
 \ar@mcellbox=\box32
-\extrarowheight=\dimen139
-\NC@list=\toks31
+\extrarowheight=\dimen147
+\NC@list=\toks32
 \extratabsurround=\skip59
 \backup@length=\skip60
 \ar@cellbox=\box33
@@ -276,15 +303,19 @@ Package: array 2018/04/30 v2.4h Tabular extension package (FMi)
 ("C:\Program Files\MiKTeX 2.9\tex\latex\multirow\multirow.sty"
 Package: multirow 2018/08/03 v2.3 Span multiple rows of a table
 \multirow@colwidth=\skip61
-\multirow@cntb=\count122
+\multirow@cntb=\count125
 \multirow@dima=\skip62
-\bigstrutjot=\dimen140
+\bigstrutjot=\dimen148
 )
 (C:\Users\meddwilb\AppData\Roaming\MiKTeX\2.9\tex\latex\url\url.sty
 \Urlmuskip=\muskip11
 Package: url 2013/09/16  ver 3.4  Verb mode for urls, etc.
 )
-(Robust_value.aux)
+(Robust_value.aux
+
+LaTeX Warning: Label `fig:fixed_sw' multiply defined.
+
+)
 \openout1 = `Robust_value.aux'.
 
 LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 18.
@@ -303,17 +334,17 @@ LaTeX Font Info:    ... okay on input line 18.
 (C:\Users\meddwilb\AppData\Roaming\MiKTeX\2.9\tex\context\base\mkii\supp-pdf.mk
 ii
 [Loading MPS to PDF converter (version 2006.09.02).]
-\scratchcounter=\count123
-\scratchdimen=\dimen141
+\scratchcounter=\count126
+\scratchdimen=\dimen149
 \scratchbox=\box34
-\nofMPsegments=\count124
-\nofMParguments=\count125
-\everyMPshowfont=\toks32
-\MPscratchCnt=\count126
-\MPscratchDim=\dimen142
-\MPnumerator=\count127
-\makeMPintoPDFobject=\count128
-\everyMPtoPDFconversion=\toks33
+\nofMPsegments=\count127
+\nofMParguments=\count128
+\everyMPshowfont=\toks33
+\MPscratchCnt=\count129
+\MPscratchDim=\dimen150
+\MPnumerator=\count130
+\makeMPintoPDFobject=\count131
+\everyMPtoPDFconversion=\toks34
 ) ("C:\Program Files\MiKTeX 2.9\tex\latex\oberdiek\epstopdf-base.sty"
 Package: epstopdf-base 2016/05/15 v2.6 Base part for package epstopdf
 
@@ -350,10 +381,6 @@ Package etexcmds Info: Could not find \expanded.
 ("C:\Program Files\MiKTeX 2.9\tex\generic\oberdiek\pdftexcmds.sty"
 Package: pdftexcmds 2018/09/10 v0.29 Utility functions of pdfTeX for LuaTeX (HO
 )
-
-("C:\Program Files\MiKTeX 2.9\tex\generic\oberdiek\ifpdf.sty"
-Package: ifpdf 2018/09/07 v3.3 Provides the ifpdf switch
-)
 Package pdftexcmds Info: LuaTeX not detected.
 Package pdftexcmds Info: \pdf@primitive is available.
 Package pdftexcmds Info: \pdf@ifprimitive is available.
@@ -366,129 +393,199 @@ Package grfext Info: Graphics extension search list:
 G,.JBIG2,.JB2,.eps]
 (grfext)             \AppendGraphicsExtensions on input line 456.
 )
+*geometry* driver: auto-detecting
+*geometry* detected driver: pdftex
+*geometry* verbose mode - [ preamble ] result:
+* driver: pdftex
+* paper: custom
+* layout: <same size as paper>
+* layoutoffset:(h,v)=(0.0pt,0.0pt)
+* hratio: 1:1
+* vratio: 1:1
+* modes: twoside asymmetric 
+* h-part:(L,W,R)=(53.5623pt, 416.83287pt, 53.56232pt)
+* v-part:(T,H,B)=(82.93977pt, 520.68542pt, 82.93979pt)
+* \paperwidth=523.95749pt
+* \paperheight=686.56499pt
+* \textwidth=416.83287pt
+* \textheight=520.68542pt
+* \oddsidemargin=-18.70769pt
+* \evensidemargin=-18.70769pt
+* \topmargin=-22.33022pt
+* \headheight=12.0pt
+* \headsep=21.0pt
+* \topskip=10.0pt
+* \footskip=30.0pt
+* \marginparwidth=65.0pt
+* \marginparsep=11.0pt
+* \columnsep=12.0pt
+* \skip\footins=20.0pt plus 8.0pt
+* \hoffset=0.0pt
+* \voffset=0.0pt
+* \mag=1000
+* \@twocolumnfalse
+* \@twosidetrue
+* \@mparswitchfalse
+* \@reversemarginfalse
+* (1in=72.27pt=25.4mm, 1cm=28.453pt)
+
 Package caption Info: Begin \AtBeginDocument code.
 Package caption Info: float package is loaded.
 Package caption Info: End \AtBeginDocument code.
-LaTeX Font Info:    Try loading font information for U+lasy on input line 46.
-
+LaTeX Font Info:    Try loading font information for U+lasy on input line 41.
 ("C:\Program Files\MiKTeX 2.9\tex\latex\base\ulasy.fd"
 File: ulasy.fd 1998/08/17 v2.2e LaTeX symbol font definitions
 )
-LaTeX Font Info:    Try loading font information for U+msa on input line 46.
+LaTeX Font Info:    Try loading font information for U+msa on input line 41.
 
 ("C:\Program Files\MiKTeX 2.9\tex\latex\amsfonts\umsa.fd"
 File: umsa.fd 2013/01/14 v3.01 AMS symbols A
 )
-LaTeX Font Info:    Try loading font information for U+msb on input line 46.
+LaTeX Font Info:    Try loading font information for U+msb on input line 41.
 
 ("C:\Program Files\MiKTeX 2.9\tex\latex\amsfonts\umsb.fd"
 File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 )
 LaTeX Font Warning: Font shape `OT1/cmss/m/n' in size <18> not available
-(Font)              size <17.28> substituted on input line 50.
+(Font)              size <17.28> substituted on input line 45.
 LaTeX Font Warning: Font shape `OT1/cmss/bx/n' in size <18> not available
-(Font)              size <17.28> substituted on input line 50.
-LaTeX Font Info:    Try loading font information for OMS+cmss on input line 50.
+(Font)              size <17.28> substituted on input line 45.
+LaTeX Font Info:    Try loading font information for OMS+cmss on input line 45.
 
-LaTeX Font Info:    No file OMScmss.fd. on input line 50.
+LaTeX Font Info:    No file OMScmss.fd. on input line 45.
 LaTeX Font Warning: Font shape `OMS/cmss/m/n' undefined
-(Font)              using `OMS/cmsy/m/n' instead on input line 50.
-LaTeX Font Warning: Font shape `OT1/cmss/m/it' in size <10> not available
-(Font)              Font shape `OT1/cmss/m/sl' tried instead on input line 50.
-LaTeX Font Warning: Font shape `OT1/cmss/m/it' in size <7> not available
-(Font)              Font shape `OT1/cmss/m/sl' tried instead on input line 50.
- [1{C:/Users/meddwilb/AppData/Local/MiKTeX/2.9/pdftex/config/pdftex.map}
+(Font)              using `OMS/cmsy/m/n' instead on input line 45.
 
-] [2]
-LaTeX Font Warning: Font shape `OT1/cmss/m/it' in size <12> not available
-(Font)              Font shape `OT1/cmss/m/sl' tried instead on input line 87.
-<./figures/ex1_3tangents.pdf, id=17, 397.485pt x 255.95625pt>
-File: ./figures/ex1_3tangents.pdf Graphic file (type pdf)
-<use ./figures/ex1_3tangents.pdf>
-Package pdftex.def Info: ./figures/ex1_3tangents.pdf  used on input line 105.
-(pdftex.def)             Requested size: 317.98842pt x 204.76526pt.
- [3] [4 <./figures/ex1_3tangents.pdf>]
-<./figures/cluster_pow.pdf, id=39, 397.485pt x 255.95625pt>
-File: ./figures/cluster_pow.pdf Graphic file (type pdf)
-<use ./figures/cluster_pow.pdf>
-Package pdftex.def Info: ./figures/cluster_pow.pdf  used on input line 152.
-(pdftex.def)             Requested size: 317.98842pt x 204.76526pt.
-<./figures/cluster_disc.pdf, id=40, 397.485pt x 255.95625pt>
-File: ./figures/cluster_disc.pdf Graphic file (type pdf)
-<use ./figures/cluster_disc.pdf>
-Package pdftex.def Info: ./figures/cluster_disc.pdf  used on input line 161.
-(pdftex.def)             Requested size: 317.98842pt x 204.76526pt.
- [5]
 Underfull \vbox (badness 10000) has occurred while \output is active []
 
- [6 <./figures/cluster_pow.pdf> <./figures/cluster_disc.pdf>]
+LaTeX Font Warning: Font shape `OT1/cmss/m/it' in size <7> not available
+(Font)              Font shape `OT1/cmss/m/sl' tried instead on input line 48.
+ [1
 
-Package natbib Warning: Citation `Norman2012' on page 7 undefined on input line
- 172.
+{C:/Users/meddwilb/AppData/Local/MiKTeX/2.9/pdftex/config/pdftex.map}]
+Overfull \vbox (2.9852pt too high) has occurred while \output is active []
+
+LaTeX Font Warning: Font shape `OT1/cmss/m/it' in size <10> not available
+(Font)              Font shape `OT1/cmss/m/sl' tried instead on input line 59.
+
+[2]
+LaTeX Font Warning: Font shape `OT1/cmss/m/it' in size <12> not available
+(Font)              Font shape `OT1/cmss/m/sl' tried instead on input line 68.
+LaTeX Font Info:    Try loading font information for OMS+cmr on input line 89.
+ ("C:\Program Files\MiKTeX 2.9\tex\latex\base\omscmr.fd"
+File: omscmr.fd 2014/09/29 v2.5h Standard LaTeX font definitions
+)
+LaTeX Font Info:    Font shape `OMS/cmr/m/n' in size <10> not available
+(Font)              Font shape `OMS/cmsy/m/n' tried instead on input line 89.
+ [3] [4]
+<./figures/p_curves.pdf, id=29, 426.59375pt x 284.06125pt>
+File: ./figures/p_curves.pdf Graphic file (type pdf)
+<use ./figures/p_curves.pdf>
+Package pdftex.def Info: ./figures/p_curves.pdf  used on input line 138.
+(pdftex.def)             Requested size: 341.27545pt x 227.24928pt.
+ [5]
+<./figures/opt_t_test.pdf, id=36, 426.59375pt x 284.06125pt>
+File: ./figures/opt_t_test.pdf Graphic file (type pdf)
+<use ./figures/opt_t_test.pdf>
+Package pdftex.def Info: ./figures/opt_t_test.pdf  used on input line 174.
+(pdftex.def)             Requested size: 341.27545pt x 227.24928pt.
+
+[6 <./figures/p_curves.pdf>]
+<./figures/dists_t_test.pdf, id=47, 426.59375pt x 284.06125pt>
+File: ./figures/dists_t_test.pdf Graphic file (type pdf)
+<use ./figures/dists_t_test.pdf>
+Package pdftex.def Info: ./figures/dists_t_test.pdf  used on input line 189.
+(pdftex.def)             Requested size: 341.27545pt x 227.24928pt.
+ [7 <./figures/opt_t_test.pdf>]
+<./figures/fixed_t_test.pdf, id=59, 426.59375pt x 284.06125pt>
+File: ./figures/fixed_t_test.pdf Graphic file (type pdf)
+<use ./figures/fixed_t_test.pdf>
+Package pdftex.def Info: ./figures/fixed_t_test.pdf  used on input line 199.
+(pdftex.def)             Requested size: 341.27545pt x 227.24928pt.
+<./figures/opt_sw_k.pdf, id=60, 426.59375pt x 426.59375pt>
+File: ./figures/opt_sw_k.pdf Graphic file (type pdf)
+<use ./figures/opt_sw_k.pdf>
+Package pdftex.def Info: ./figures/opt_sw_k.pdf  used on input line 210.
+(pdftex.def)             Requested size: 341.27545pt x 341.27545pt.
+<./figures/fixed_sw_k.pdf, id=61, 426.59375pt x 426.59375pt>
+File: ./figures/fixed_sw_k.pdf Graphic file (type pdf)
+<use ./figures/fixed_sw_k.pdf>
+Package pdftex.def Info: ./figures/fixed_sw_k.pdf  used on input line 217.
+(pdftex.def)             Requested size: 341.27545pt x 341.27545pt.
+ [8 <./figures/dists_t_test.pdf>] [9 <./figures/fixed_t_test.pdf>] [10 <./figur
+es/opt_sw_k.pdf>]
+
+LaTeX Warning: Reference `' on page 11 undefined on input line 254.
 
 
-Package natbib Warning: Citation `Edwards1997' on page 7 undefined on input lin
-e 174.
+LaTeX Warning: Reference `' on page 11 undefined on input line 254.
 
+[11 <./figures/fixed_sw_k.pdf>]
+<./figures/mult_design.pdf, id=101, 426.59375pt x 284.06125pt>
+File: ./figures/mult_design.pdf Graphic file (type pdf)
+<use ./figures/mult_design.pdf>
+Package pdftex.def Info: ./figures/mult_design.pdf  used on input line 258.
+(pdftex.def)             Requested size: 341.27545pt x 227.24928pt.
+<./figures/minimax_t_test.pdf, id=102, 426.59375pt x 284.06125pt>
+File: ./figures/minimax_t_test.pdf Graphic file (type pdf)
+<use ./figures/minimax_t_test.pdf>
+Package pdftex.def Info: ./figures/minimax_t_test.pdf  used on input line 274.
+(pdftex.def)             Requested size: 341.27545pt x 227.24928pt.
+ [12 <./figures/mult_design.pdf>] [13 <./figures/minimax_t_test.pdf>] [14] (Rob
+ust_value.bbl [15]
+Underfull \vbox (badness 10000) has occurred while \output is active []
 
-Package natbib Warning: Citation `Girling2007' on page 7 undefined on input lin
-e 176.
-
-
-Package natbib Warning: Citation `Claxton1999' on page 7 undefined on input lin
-e 178.
-
-
-Package natbib Warning: Citation `Grayling2018' on page 7 undefined on input li
-ne 180.
-
-
-Package natbib Warning: Citation `Altman1980' on page 7 undefined on input line
- 182.
-
-
-Package natbib Warning: Citation `DeMartini2010' on page 7 undefined on input l
-ine 184.
-
-(Robust_value.bbl)
-
-Package natbib Warning: There were undefined citations.
-
-[7] (Robust_value.aux)
+ [16])
+[17] (Robust_value.aux)
 LaTeX Font Warning: Size substitutions with differences
 (Font)              up to 0.72pt have occurred.
 LaTeX Font Warning: Some font shapes were not available, defaults substituted.
+
+
+LaTeX Warning: There were undefined references.
+
+
+LaTeX Warning: There were multiply-defined labels.
+
  ) 
 Here is how much of TeX's memory you used:
- 5093 strings out of 492970
- 73792 string characters out of 3135846
- 147851 words of memory out of 3000000
- 8838 multiletter control sequences out of 15000+200000
- 17178 words of font info for 67 fonts, out of 3000000 for 9000
+ 5742 strings out of 492970
+ 83992 string characters out of 3135846
+ 164170 words of memory out of 3000000
+ 9460 multiletter control sequences out of 15000+200000
+ 19040 words of font info for 75 fonts, out of 3000000 for 9000
  1141 hyphenation exceptions out of 8191
- 43i,9n,40p,1144b,365s stack positions out of 5000i,500n,10000p,200000b,50000s
-<C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmbx7.pfb><C:/Pro
-gram Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmex10.pfb><C:/Program Fil
-es/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmmi10.pfb><C:/Program Files/MiKTe
-X 2.9/fonts/type1/public/amsfonts/cm/cmmi7.pfb><C:/Program Files/MiKTeX 2.9/fon
-ts/type1/public/amsfonts/cm/cmr10.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/
-public/amsfonts/cm/cmr7.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/ams
-fonts/cm/cmr9.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/c
-mss10.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmss8.pfb
-><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmss9.pfb><C:/Prog
-ram Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmssbx10.pfb><C:/Program Fi
-les/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmssi10.pfb><C:/Program Files/MiK
-TeX 2.9/fonts/type1/public/amsfonts/cm/cmssi12.pfb><C:/Program Files/MiKTeX 2.9
-/fonts/type1/public/amsfonts/cm/cmssi8.pfb><C:/Program Files/MiKTeX 2.9/fonts/t
-ype1/public/amsfonts/cm/cmsy10.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/pub
-lic/amsfonts/cm/cmsy5.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfo
-nts/cm/cmsy7.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cm
-ti10.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmti7.pfb>
-<C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/symbols/msbm10.pfb><C:
-/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/symbols/msbm7.pfb>
-Output written on Robust_value.pdf (7 pages, 258999 bytes).
+ 43i,9n,40p,1144b,410s stack positions out of 5000i,500n,10000p,200000b,50000s
+<C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmbx10.pfb><C:/Pr
+ogram Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmex10.pfb><C:/Program Fi
+les/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmmi10.pfb><C:/Program Files/MiKT
+eX 2.9/fonts/type1/public/amsfonts/cm/cmmi12.pfb><C:/Program Files/MiKTeX 2.9/f
+onts/type1/public/amsfonts/cm/cmmi5.pfb><C:/Program Files/MiKTeX 2.9/fonts/type
+1/public/amsfonts/cm/cmmi6.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/
+amsfonts/cm/cmmi7.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/
+cm/cmmi9.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmr10.
+pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmr5.pfb><C:/Pr
+ogram Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmr6.pfb><C:/Program File
+s/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmr7.pfb><C:/Program Files/MiKTeX 2
+.9/fonts/type1/public/amsfonts/cm/cmr9.pfb><C:/Program Files/MiKTeX 2.9/fonts/t
+ype1/public/amsfonts/cm/cmss10.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/pub
+lic/amsfonts/cm/cmss8.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfo
+nts/cm/cmss9.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cm
+ssbx10.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmssi10.
+pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmssi12.pfb><C:
+/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmssi8.pfb><C:/Program
+ Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmsy10.pfb><C:/Program Files/M
+iKTeX 2.9/fonts/type1/public/amsfonts/cm/cmsy7.pfb><C:/Program Files/MiKTeX 2.9
+/fonts/type1/public/amsfonts/cm/cmsy9.pfb><C:/Program Files/MiKTeX 2.9/fonts/ty
+pe1/public/amsfonts/cm/cmti10.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/publ
+ic/amsfonts/cm/cmti7.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfon
+ts/cm/cmti9.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmt
+t9.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/symbols/msbm10.
+pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/symbols/msbm7.pfb>
+
+Output written on Robust_value.pdf (17 pages, 454050 bytes).
 PDF statistics:
- 134 PDF objects out of 1000 (max. 8388607)
+ 223 PDF objects out of 1000 (max. 8388607)
  0 named destinations out of 1000 (max. 500000)
- 16 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 41 words of extra memory for PDF output out of 10000 (max. 10000000)
 
