@@ -26,7 +26,7 @@ cols <- brewer.pal(8, "Dark2")
 
 ## Non-lienar power value
 
-Assuming a linear single attribute n, and assuming that the rate of substitution depends on $\beta$ but not on $n$ (so, the amount of $n$ we will pay to improve $\beta$ does not depend on $n$), a signle attribute value function for $\beta$ will complete our specification.
+Assuming a linear single attribute n, and assuming that the rate of substitution depends on $\beta$ but not on $n$ (so, the amount of $n$ we will pay to improve $\beta$ does not depend on $n$), a single attribute value function for $\beta$ will complete our specification.
 
 What can we say, in general, about $v(\beta)$? We can surely say that it plateaus as $\beta$ tends to 0, since by that point decreasing $\beta$ will only give us improvements in the power to detect an effect very close to the null. 
 
@@ -389,7 +389,7 @@ for(i in 1:nrow(params)){
 [To do - repeat above getting the constrained n and / or the upper CI n, and plot the differences, so we can show the practical implications]
 
 ```{r}
-ggplot(df, aes(k)) + geom_tile(aes(y = sig, fill = n_fix - n)) +
+ggplot(df, aes(k)) + geom_tile(aes(y = sig, fill = r_fix - r)) +
     scale_fill_viridis(discrete=FALSE) + #, limits = c(0,250)) + 
       geom_line(data = df[df$sig == 1,], aes(y = up)) +
       geom_line(data = df[df$sig == 1,], aes(y = lo)) +
@@ -401,7 +401,7 @@ ggplot(df, aes(k)) + geom_tile(aes(y = sig, fill = n_fix - n)) +
 For a specific estimate and interval, plot the minimax regret for each scenario for each n and highlight the optimal n and other choices.
 
 ```{r}
-sig <- 1; k <- 15
+sig <- 1; k <- 30
 lo <- sqrt(k*sig^2/qchisq(0.975, k)) 
 up <- sqrt(k*sig^2/qchisq(0.025, k)) 
 
@@ -467,6 +467,65 @@ for(i in 1:nrow(params)){
 
 (plots5[[1]] + plots5[[2]]) /(plots5[[3]] + plots5[[4]]) + plot_layout(guides = "collect") & theme(legend.position = 'bottom')
 ```
+## Binary cRCT
+
+Rutterford2015
+
+To illustrate the genral approach being applied to a different and more complex problem, consider a cRCT with a binary outcome. Power is then a function of the control group rate and the between cluster variance / the ICC.
+
+
+```{r}
+pow <- function(x, var_b, p_0)
+{
+  m <- x[1]; n <- x[2]
+  # Large sample power
+  p_1 <- p_0 - 0.2
+  1 - pnorm(qnorm(0.975) - 0.2/sqrt((2*var_b + p_0*(1 - p_0)/n + p_1*(1 - p_1)/n)/m))
+}
+
+v <- function(x, p, lambda, gamma)
+{
+  m <- x[1]; n <- x[2]
+  # Value function
+  -(log(p*gamma + 1)/log(gamma + 1) - lambda[1]*m - lambda[2]*m*n - lambda[1]*4*(m > 0))
+}
+
+pow(x = c(20,14), var_b = 0.021, p_0 = 0.7)
+lambda <- grad(pow, c(20,14), var_b = 0.021, p_0 = 0.7)
+gamma <- 2
+  
+df <- expand.grid(m = 2:50, n = c(14, 20))
+df$var_b <- 0.021
+df <- rbind(df, df)
+  
+df$p_0 <- c(rep(0.7, nrow(df)/2), rep(0.6, nrow(df)/2))
+df$p <- apply(df, 1, function(z) pow(z[1:2], z[3], z[4]))
+
+df$v <- apply(df, 1, function(z) v(z[1:2], z[5], lambda, gamma))
+  
+  df[which.min(df$v*(df$sig == 1)),]
+  
+  opt1 <- df[which.min(df$v*(df$sig == 1)),]
+  opt2 <- df[which.min(df$v*(df$sig == 1.3)),]
+  
+  gr <- expand.grid(n = seq(4, 500, l = 10),
+                    p = seq(0, 1, l = 10))
+  gr$v <- v(gr$n, gr$p, lambda, gamma)
+  
+  plots[[i]] <- ggplot(df, aes(n, p)) + geom_line(aes(colour=as.factor(sig))) +
+    geom_hline(yintercept = 0.8, linetype=2) +
+    geom_contour(data = gr, aes(z = v), alpha = 0.5, colour = cols[3]) +
+    geom_contour(data = gr, aes(z = v), breaks = c(0), colour = cols[4]) +
+    geom_point(data = df[as.numeric(row.names(rbind(opt1, opt2))), ]) +
+    ylab("Power") + xlab("Sample size") +
+    scale_colour_manual(values=cols[1:2], labels=round(c(sig, 1.3*sig), 2)) +
+    labs(colour = "SD") +
+    theme_minimal()
+}
+
+(plots[[1]] + plots[[2]]) /(plots[[3]] + plots[[4]]) + plot_layout(guides = "collect") & theme(legend.position = 'bottom')
+```
+
 
 
 
