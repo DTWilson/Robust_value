@@ -551,7 +551,98 @@ plot2 <- ggplot(df, aes(p_0, var_b, fill = n*m)) + geom_tile() +
 
 plot1 + plot2
 ```
+Find the minimax regret design, plot maximum regret.
 
+```{r}
+p_0_int <- c(0.6, 0.8)
+var_b_int <- c(0.01, 0.04)
+
+get_reg <- function(x, m, n)
+{
+  var_b <- x[1]; p_0 <- x[2]
+  # Get locally optimal design
+  sols <- expand.grid(m = 2:50,
+                    n = 2:50)
+
+  l_opt_id <- which.min(v(sols$m, sols$n, pow(sols$m, sols$n, var_b, p_0), lambda, gamma))
+  l_m <- sols[l_opt_id, "m"]; l_n <- sols[l_opt_id, "n"]
+  l_opt_v <- v(l_m, l_n, pow(l_m, l_n, var_b, p_0), lambda, gamma)
+  
+  - v(m, n, pow(m, n, var_b, p_0), lambda, gamma) + v(l_m, l_n, pow(l_m, l_n, var_b, p_0), lambda, gamma)
+}
+
+get_max_reg <- function(x)
+{
+  m <- x[1]; n <- x[2]
+  optim(c(0.02, 0.7), get_reg,
+        lower = c(var_b_int[1], p_0_int[1]), upper = c(var_b_int[2], p_0_int[2]),
+        method = "L-BFGS-B",
+        m = m, n = n)$value
+}
+
+sols$max_r <- apply(sols, 1, get_max_reg)
+sols[which.max(sols$max_r),]
+
+ggplot(sols, aes(m, n, fill = max_r, z = max_r)) + 
+  geom_tile() + geom_contour() +
+  geom_point(data = sols[which.max(sols$max_r),]) +
+  theme_minimal() +
+  labs(fill = "Max regret")
+```
+
+Plot regret for the optimal design.
+
+```{r}
+sig <- 1; k <- 30
+lo <- sqrt(k*sig^2/qchisq(0.975, k)) 
+up <- sqrt(k*sig^2/qchisq(0.025, k)) 
+
+plots4 <- vector("list", 4)
+for(i in 1:nrow(params)){
+  # Now compute an n x sig matrix of values
+  lambda <- params[i,1]; gamma <- params[i, 2]
+  sigs <- seq(0.1, 3, l = 200)
+  ns <- c(0, 2:500)
+  
+  vs <- matrix(rep(NA, length(sigs)*length(ns)), ncol = length(sigs))
+  for(j in 1:nrow(vs)){
+    for(k in 1:ncol(vs)){
+      p <- 0
+      if(ns[j] != 0 ) p <- pow(ns[j], sigs[k])
+      vs[j, k] <- v(ns[j], p, lambda, gamma)
+    }
+  }
+  
+  # Get value of optimal designs
+  opt_v_all <- -apply(vs, 2, min)
+  
+  # Get minimax design
+  vs_sub <- vs[, sigs >= lo & sigs <= up]
+  opt_v <- -apply(vs_sub, 2, min)
+  regs <- t(t(vs_sub) + opt_v)
+  n <- ns[which.min(apply(regs, 1, max))]
+  minmax_v <- -vs[which.min(apply(regs, 1, max)),]
+    
+  # Use the point estimate
+  vals <- v(ns[-1], pow(ns[-1], df$sig[j]), lambda, gamma)
+  vals <- c(v(0, 0, lambda, gamma), vals)
+  n_fix <- ns[which.min(vals)]
+  fix_v <- -vs[which.min(vals),]
+  #fix_v <- -vs[20,]
+  
+  df <- data.frame(sig = rep(sigs, 3),
+                   v = c(opt_v_all, minmax_v, fix_v),
+                   t = rep(c("Local", "Minimax", "Fixed"), each = length(sigs)))
+  
+  plots4[[i]] <- ggplot(df, aes(sig, v, colour = t)) + geom_line() +
+    scale_colour_manual(name = "", values = cols) +
+    geom_vline(xintercept = c(lo, up), linetype = 2) +
+    ylab("Value") + xlab("Standard deviation") +
+    theme_minimal()
+}
+
+(plots4[[1]] + plots4[[2]]) /(plots4[[3]] + plots4[[4]]) + plot_layout(guides = "collect") & theme(legend.position = 'bottom')
+```
 
 # Superceded
 
