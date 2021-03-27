@@ -475,55 +475,53 @@ To illustrate the genral approach being applied to a different and more complex 
 
 
 ```{r}
-pow <- function(x, var_b, p_0)
+pow <- function(m, n, var_b, p_0)
 {
-  m <- x[1]; n <- x[2]
   # Large sample power
   p_1 <- p_0 - 0.2
   1 - pnorm(qnorm(0.975) - 0.2/sqrt((2*var_b + p_0*(1 - p_0)/n + p_1*(1 - p_1)/n)/m))
 }
 
-v <- function(x, p, lambda, gamma)
+v <- function(m, n, p, lambda, gamma)
 {
-  m <- x[1]; n <- x[2]
   # Value function
-  -(log(p*gamma + 1)/log(gamma + 1) - lambda[1]*m - lambda[2]*m*n - lambda[1]*4*(m > 0))
+  -(log(p*gamma + 1)/log(gamma + 1) - lambda[1]*m - lambda[2]*m*n)# - lambda[1]*4*(m > 0))
 }
 
-pow(x = c(20,14), var_b = 0.021, p_0 = 0.7)
-lambda <- grad(pow, c(20,14), var_b = 0.021, p_0 = 0.7)
-gamma <- 2
+pow(m = 20, n = 14, var_b = 0.021, p_0 = 0.7)
+lambda <- grad(function(z) pow(z[1], z[2], var_b = 0.021, p_0 = 0.7), c(20,14))
+lambda <- c(0.013839575, 0.0008678032)
+gamma <- 0.00001
   
-df <- expand.grid(m = 2:50, n = c(14, 20))
-df$var_b <- 0.021
+df <- expand.grid(m = 2:50, n = c(7, 30))
+df$p_0 <- 0.7
 df <- rbind(df, df)
   
-df$p_0 <- c(rep(0.7, nrow(df)/2), rep(0.6, nrow(df)/2))
-df$p <- apply(df, 1, function(z) pow(z[1:2], z[3], z[4]))
+df$var_b <- c(rep(0.021, nrow(df)/2), rep(0.042, nrow(df)/2))
+df$p <- pow(df$m, df$n, df$var_b, df$p_0)
 
-df$v <- apply(df, 1, function(z) v(z[1:2], z[5], lambda, gamma))
+df$v <- v(df$m, df$n, df$p, lambda, gamma)
   
-  df[which.min(df$v*(df$sig == 1)),]
+opt1 <- df[which.min(df$v - 10000*(df$n == 7 & df$var_b == 0.021)),]
+opt2 <- df[which.min(df$v - 10000*(df$n == 7 & df$var_b == 0.042)),]
+opt3 <- df[which.min(df$v - 10000*(df$n == 30 & df$var_b == 0.021)),]
+opt4 <- df[which.min(df$v - 10000*(df$n == 30 & df$var_b == 0.042)),]
   
-  opt1 <- df[which.min(df$v*(df$sig == 1)),]
-  opt2 <- df[which.min(df$v*(df$sig == 1.3)),]
+gr <- expand.grid(m = seq(2, 50, l = 10),
+                  p = seq(0, 1, l = 10))
+gr$v <- v(gr$m, n = 30, gr$p, lambda, gamma)
   
-  gr <- expand.grid(n = seq(4, 500, l = 10),
-                    p = seq(0, 1, l = 10))
-  gr$v <- v(gr$n, gr$p, lambda, gamma)
-  
-  plots[[i]] <- ggplot(df, aes(n, p)) + geom_line(aes(colour=as.factor(sig))) +
+ggplot(df, aes(m, p)) + 
+  geom_line(aes(colour=as.factor(var_b), linetype = as.factor(n))) +
     geom_hline(yintercept = 0.8, linetype=2) +
     geom_contour(data = gr, aes(z = v), alpha = 0.5, colour = cols[3]) +
     geom_contour(data = gr, aes(z = v), breaks = c(0), colour = cols[4]) +
-    geom_point(data = df[as.numeric(row.names(rbind(opt1, opt2))), ]) +
+    geom_point(data = df[as.numeric(row.names(rbind(opt1, opt2, opt3, opt4))), ]) +
     ylab("Power") + xlab("Sample size") +
-    scale_colour_manual(values=cols[1:2], labels=round(c(sig, 1.3*sig), 2)) +
-    labs(colour = "SD") +
+    #scale_colour_manual(values=cols[1:2], labels=round(c(sig, 1.3*sig), 2)) +
+    labs(colour = expression(sigma[b]^2),
+         linetype = "n") +
     theme_minimal()
-}
-
-(plots[[1]] + plots[[2]]) /(plots[[3]] + plots[[4]]) + plot_layout(guides = "collect") & theme(legend.position = 'bottom')
 ```
 
 
