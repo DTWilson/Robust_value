@@ -524,7 +524,33 @@ ggplot(df, aes(m, p)) +
     theme_minimal()
 ```
 
+```{r}
+df <- expand.grid(p_0 = seq(0.2001, 1, l=100),
+                  var_b = seq(0.0001, 0.15, l = 100))
 
+sols <- expand.grid(m = 2:50,
+                    n = 2:50)
+
+opt_sols_ids <- apply(df, 1, function(z) which.min(v(sols$m, sols$n, pow(sols$m, sols$n, as.numeric(z[2]), as.numeric(z[1])), lambda, gamma)))
+
+df$m <- sols[opt_sols_ids, "m"]
+df$n <- sols[opt_sols_ids, "n"]
+df$v <- v(df$m, df$n, pow(df$m, df$n, df$var_b, df$p_0), lambda, gamma)
+
+plot1 <- ggplot(df, aes(p_0, var_b, fill = m)) + geom_tile() +
+  theme_minimal() +
+  scale_fill_gradient(low="white", high=cols[4]) +
+  xlab("Control probability") + ylab("Between cluster variance") +
+  labs(fill = "m")
+
+plot2 <- ggplot(df, aes(p_0, var_b, fill = n*m)) + geom_tile() +
+  theme_minimal() +
+  scale_fill_gradient(low="white", high=cols[5]) +
+  xlab("Control probability") + ylab("Between cluster variance") +
+  labs(fill = "m x n")
+
+plot1 + plot2
+```
 
 
 # Superceded
