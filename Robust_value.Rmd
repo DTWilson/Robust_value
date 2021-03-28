@@ -488,12 +488,12 @@ v <- function(m, n, p, lambda, gamma)
   -(log(p*gamma + 1)/log(gamma + 1) - lambda[1]*m - lambda[2]*m*n)# - lambda[1]*4*(m > 0))
 }
 
-pow(m = 20, n = 14, var_b = 0.021, p_0 = 0.7)
-lambda <- grad(function(z) pow(z[1], z[2], var_b = 0.021, p_0 = 0.7), c(20,14))
-lambda <- c(0.013839575, 0.0008678032)
-gamma <- 0.00001
+pow(m = 21, n = 7, var_b = 0.021, p_0 = 0.7)
+lambda <- grad(function(z) pow(z[1], z[2]/z[1], var_b = 0.021, p_0 = 0.7), c(21,7))
+lambda <- 0.63*c(0.013839575, 0.0008678032)
+gamma <- 2
   
-df <- expand.grid(m = 2:50, n = c(7, 30))
+df <- expand.grid(m = 2:50, n = c(7))
 df$p_0 <- 0.7
 df <- rbind(df, df)
   
@@ -504,38 +504,40 @@ df$v <- v(df$m, df$n, df$p, lambda, gamma)
   
 opt1 <- df[which.min(df$v - 10000*(df$n == 7 & df$var_b == 0.021)),]
 opt2 <- df[which.min(df$v - 10000*(df$n == 7 & df$var_b == 0.042)),]
-opt3 <- df[which.min(df$v - 10000*(df$n == 30 & df$var_b == 0.021)),]
-opt4 <- df[which.min(df$v - 10000*(df$n == 30 & df$var_b == 0.042)),]
+opt1
   
 gr <- expand.grid(m = seq(2, 50, l = 10),
                   p = seq(0, 1, l = 10))
-gr$v <- v(gr$m, n = 30, gr$p, lambda, gamma)
+gr$v <- v(gr$m, n = 7, gr$p, lambda, gamma)
   
 ggplot(df, aes(m, p)) + 
-  geom_line(aes(colour=as.factor(var_b), linetype = as.factor(n))) +
+  geom_line(aes(colour=as.factor(var_b))) +
     geom_hline(yintercept = 0.8, linetype=2) +
     geom_contour(data = gr, aes(z = v), alpha = 0.5, colour = cols[3]) +
     geom_contour(data = gr, aes(z = v), breaks = c(0), colour = cols[4]) +
-    geom_point(data = df[as.numeric(row.names(rbind(opt1, opt2, opt3, opt4))), ]) +
+    geom_point(data = df[as.numeric(row.names(rbind(opt1, opt2))), ]) +
     ylab("Power") + xlab("Sample size") +
-    #scale_colour_manual(values=cols[1:2], labels=round(c(sig, 1.3*sig), 2)) +
-    labs(colour = expression(sigma[b]^2),
-         linetype = "n") +
+    scale_colour_manual(values=cols[1:2]) +
+    labs(colour = expression(sigma[b]^2)) +
     theme_minimal()
 ```
 
 ```{r}
 df <- expand.grid(p_0 = seq(0.2001, 1, l=100),
-                  var_b = seq(0.0001, 0.15, l = 100))
+                  var_b = seq(0.0001, 0.5, l = 100))
 
-sols <- expand.grid(m = 2:50,
-                    n = 2:50)
+sols <- expand.grid(m = 2:40,
+                    n = 2:70)
 
 opt_sols_ids <- apply(df, 1, function(z) which.min(v(sols$m, sols$n, pow(sols$m, sols$n, as.numeric(z[2]), as.numeric(z[1])), lambda, gamma)))
 
 df$m <- sols[opt_sols_ids, "m"]
 df$n <- sols[opt_sols_ids, "n"]
 df$v <- v(df$m, df$n, pow(df$m, df$n, df$var_b, df$p_0), lambda, gamma)
+
+# Get fixed design for later, using point estimates in the middle of the intervals
+fixed <- df[df$p_0 > 0.7 & df$var_b > 0.025,][1, 3:4]
+
 
 plot1 <- ggplot(df, aes(p_0, var_b, fill = m)) + geom_tile() +
   theme_minimal() +
@@ -562,7 +564,7 @@ get_reg <- function(x, m, n)
   var_b <- x[1]; p_0 <- x[2]
   # Get locally optimal design
   sols <- expand.grid(m = 2:50,
-                    n = 2:50)
+                    n = 2:70)
 
   l_opt_id <- which.min(v(sols$m, sols$n, pow(sols$m, sols$n, var_b, p_0), lambda, gamma))
   l_m <- sols[l_opt_id, "m"]; l_n <- sols[l_opt_id, "n"]
@@ -581,67 +583,36 @@ get_max_reg <- function(x)
 }
 
 sols$max_r <- apply(sols, 1, get_max_reg)
-sols[which.max(sols$max_r),]
+sols_points <- sols[which.max(sols$max_r),]
+sols_points <- rbind(sols_points, sols[sols$m == fixed$m & sols$n == fixed$n,])
+sols_points$t <- c("Minimax", "Fixed")
 
-ggplot(sols, aes(m, n, fill = max_r, z = max_r)) + 
-  geom_tile() + geom_contour() +
-  geom_point(data = sols[which.max(sols$max_r),]) +
+ggplot(sols, aes(m, n)) + 
+  geom_tile(aes(fill = max_r)) + 
+  geom_contour(aes(z = max_r)) +
+  geom_point(data = sols_points, aes(shape = t)) +
   theme_minimal() +
-  labs(fill = "Max regret")
+  labs(fill = "Max regret",
+       shape = " ")
 ```
 
 Plot regret for the optimal design.
 
 ```{r}
-sig <- 1; k <- 30
-lo <- sqrt(k*sig^2/qchisq(0.975, k)) 
-up <- sqrt(k*sig^2/qchisq(0.025, k)) 
+p_0_int <- c(0.6, 0.8)
+var_b_int <- c(0.01, 0.04)
 
-plots4 <- vector("list", 4)
-for(i in 1:nrow(params)){
-  # Now compute an n x sig matrix of values
-  lambda <- params[i,1]; gamma <- params[i, 2]
-  sigs <- seq(0.1, 3, l = 200)
-  ns <- c(0, 2:500)
-  
-  vs <- matrix(rep(NA, length(sigs)*length(ns)), ncol = length(sigs))
-  for(j in 1:nrow(vs)){
-    for(k in 1:ncol(vs)){
-      p <- 0
-      if(ns[j] != 0 ) p <- pow(ns[j], sigs[k])
-      vs[j, k] <- v(ns[j], p, lambda, gamma)
-    }
-  }
-  
-  # Get value of optimal designs
-  opt_v_all <- -apply(vs, 2, min)
-  
-  # Get minimax design
-  vs_sub <- vs[, sigs >= lo & sigs <= up]
-  opt_v <- -apply(vs_sub, 2, min)
-  regs <- t(t(vs_sub) + opt_v)
-  n <- ns[which.min(apply(regs, 1, max))]
-  minmax_v <- -vs[which.min(apply(regs, 1, max)),]
-    
-  # Use the point estimate
-  vals <- v(ns[-1], pow(ns[-1], df$sig[j]), lambda, gamma)
-  vals <- c(v(0, 0, lambda, gamma), vals)
-  n_fix <- ns[which.min(vals)]
-  fix_v <- -vs[which.min(vals),]
-  #fix_v <- -vs[20,]
-  
-  df <- data.frame(sig = rep(sigs, 3),
-                   v = c(opt_v_all, minmax_v, fix_v),
-                   t = rep(c("Local", "Minimax", "Fixed"), each = length(sigs)))
-  
-  plots4[[i]] <- ggplot(df, aes(sig, v, colour = t)) + geom_line() +
-    scale_colour_manual(name = "", values = cols) +
-    geom_vline(xintercept = c(lo, up), linetype = 2) +
-    ylab("Value") + xlab("Standard deviation") +
-    theme_minimal()
-}
+mm_opt <- sols_points[1,1:2]
 
-(plots4[[1]] + plots4[[2]]) /(plots4[[3]] + plots4[[4]]) + plot_layout(guides = "collect") & theme(legend.position = 'bottom')
+df <- expand.grid(var_b = seq(0.0001, 0.05, l=100),
+                  p_0 = seq(0.5, 0.9, l=100))
+df$reg <- apply(df, 1, function(z) get_reg(z[1:2], m = mm_opt$m, n = mm_opt$n))
+
+ggplot(df, aes(p_0, var_b, fill = reg)) + geom_tile() + 
+  geom_rect(xmin = 0.6, xmax = 0.8, ymin  = 0.01, ymax = 0.04, fill = NA, colour = "black", linetype = 2) +
+  xlab("Control probability") + ylab("Between cluster variance") +
+  labs(fill = "Regret") +
+  theme_minimal()
 ```
 
 # Superceded
