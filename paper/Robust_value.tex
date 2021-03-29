@@ -61,81 +61,40 @@ Discussion - key points are: "under/overpowered" trials and ethical arguments; t
 
 When designing a clinical trial, the standard approach to sample size determination (SSD) is to choose the smallest sample size which will ensure that the power of the trial will be greater than a pre-specified nominal threshold (often 80 or 90\%). Power is defined in relation to a target effect size (specifically, the minimal clinically important difference \cite{Cook2018}), and under some modelling assumptions. These assumptions will typically include the value of one or more nuisance parameters in the model, and so these must be estimated prior to the trial. Incorrect estimates can lead to the actual power of the trial differing from the planned power. The greater the error in estimation, the greater the discrepancy between planned and actual power.
 
-One approach to addressing uncertainty in nuisance parameter values is to conduct a small \emph{pilot} trial prior to the planned definitive study \cite{Browne1995, Gould2001, Friede2006}. The pilot data can then be used to estimate the nuisance parameter, with this estimate then being used in the sample size calculation of the definitive trial. This leads to the definitive trial sample size being a random variable (a function of the pilot trial estimate),  meaning a certain degree of precision in the pilot estimate is required to avoid excessive variability in the main trial sample size, and the cost of sampling in the pilot must be weigh
+%The conventional approach to SSD does not formally allow for the costs of sampling to be taken into account. Informally, this is often done through the so-called `sample size samba' \cite{Schulz2005}. This is the common procedure whereby the MCID declared for a study is iteratively adjusted until the sample size required for nominal power is considered feasible. This is not an option when using a pilot trial to estimate the nuisance parameter, as the MCID will have been declared prior to the estimate being obtained. This results in an incoherent procedure in the sense that a sample size calculation based on an estimate could lead to very different choices depending on whether the estimate came from a pilot or from some other external source. We would argue that a SSD procedure should lead to the same decision whenever the same inputs are used.
 
-traded-off against the benefits it will bring \cite{Teare2014, Whitehead2015}. In some cases, such as in cluster randomised trials, sufficient precision is not attainable within the constraints of a pilot study \cite{Lake2002, Eldridge2015}. When the pilot will deliver a sufficiently  precise estimate, it may nevertheless be an undesirable procedure due to logistical reasons. For example, a long-term primary endpoint would cause significant delay to starting the definitive trial if it must first be measured in a pilot trial. Thus, pilot estimation may not always be the best way to address uncertainty in the nuisance parameter.
-
-The conventional approach to SSD does not formally allow for the costs of sampling to be taken into account. Informally, this is often done through the so-called `sample size samba' \cite{Schulz2005}. This is the common procedure whereby the MCID declared for a study is iteratively adjusted until the sample size required for nominal power is considered feasible. This is not an option when using a pilot trial to estimate the nuisance parameter, as the MCID will have been declared prior to the estimate being obtained. This results in an incoherent procedure in the sense that a sample size calculation based on an estimate could lead to very different choices depending on whether the estimate came from a pilot or from some other external source. We would argue that a SSD procedure should lead to the same decision whenever the same inputs are used.
-
-Motivated by these difficulties, we propose an alternative approach to SSD which explicitly accounts for both the benefits and costs of the trial. We do this through introducing a value function, a linear combination of the trial's power and its sample size, and choosing the sample size which maximises value. We will show that this simple value-based approach  leads to a coherent re-estimation procedure with good operating characteristics and, in many cases, can eliminate the need for re-estimation altogether by finding designs which are robust to uncertainty in nuisance parameters.
+We propose an alternative approach to SSD which explicitly accounts for both the benefits and costs of the trial. We do this through introducing a value function, a linear combination of the trial's power and its sample size, and choosing the sample size which maximises value. We will show that this simple value-based approach leads to a coherent re-estimation procedure with good operating characteristics and, in many cases, can eliminate the need for re-estimation altogether by finding designs which are robust to uncertainty in nuisance parameters.
 
 The remainder of this paper is organised as follows. Two motivating examples are introduced in Section \ref{sec:examples}. In Section \ref{sec:methods} we define the conventional method for SSD and introduce the value-based alternative. These are then applied to the motivating examples in Section \ref{sec:examples}. We consider some extensions to the basic method in Section \ref{sec:extensions}, before concluding with a discussion in Section \ref{sec:discussion}.
 
-\section{Motivating examples}\label{sec:examples}
-
-% Two examples where we can't get precise pilot estimates, and so would get hugely variable n under standard SSR.
-
-% Do we need these for motivation? Clearer if we just introduce them as examples after themethods have been described. Just need to make the motivation clear in the intro, perhaps mentioning pilot cRCTs and the results and recoemmendations in \cite{Eldridge2015}.
-
-\subsection{Cluster randomised trial}\label{sec:ex_cRCT}
-
-Consider a cluster randomised trial, with $k$ clusters in each of two arms and $m$ participants in each cluster. The primary outcome of participant $i$ in cluster $j$ and arm $k$ is normally distributed:
-\begin{align*}
-y_{i,j,k} & \sim N(u_j, \sigma_w^2) \\
-u_j & \sim N(\mu_k, \sigma_b^2).
-\end{align*}
-The primary analysis will compare the cluster means between the two arms in a $t$-test. The nuisance parameter in this test is the variance of cluster means:
-$$
-Var(u_j) = \sigma_b^2 + \frac{\sigma_w^2}{m} = \sigma^2.
-$$
-Estimation of $\sigma^2$ (or equivalently, of the total variance and the ICC) is challenging due to the very small sample size, since the unit of measurement is the cluster. In a methodology study of external pilot cluster randomised trials, the sampling variability of pilot estimates was found to be so large that for a pilot to obtain a sufficiently precise estimate, the pilot sample size often needed to be as large as that of the definitive trial \cite{Eldridge2015}. This led the authors to conclude that sample size re-estimation is not feasible for cluster RCTs, and that nuisance parameter estimates should instead be sought from elsewhere.
-
-% Add some specific numbers to illustrate how variable the definitive n can be?
-
-\subsection{Closed cohort stepped wedge trial}\label{sec:ex_SW}
-
-Consider a stepped wedge trial in five steps, or arms. In arm $i$, $k$ clusters start the trial in the control condition before adopting the intervention at time $j = i$. Each cluster is measured at each time point $j = 0, 1, \ldots , 5$. Measurement is at the individual level, with $m$ individuals in each cluster. The same individuals area measured at each time point, in what is known as a closed cohort stepped wedge design.
-
-The suggested statistical model of this trial involves four nuisance parameters, each of which help determine power \cite{Hooper2016}. These parameters are:
-\begin{itemize}
-\item $\sigma^2$, the total variance;
-\item $\rho$, the intracluster correlation;
-\item $\pi$, the cluster autocorrelation; and
-\item $\tau$, the individual autocorrelation.
-\end{itemize}
-
-We consider the `Girls on the Go!' trial as an example, taking the initial design, estimates of nuisance parameters, and MCID as \cite{Hooper2016}. There, a cluster size of $m = 10$ was assumed fixed and the constrained method gave an optimal number of clusters of $k = 4$, leading to a total sample size of 120 (due to the three arms of the stepped wedge design). Here, we will instead fix the number of clusters at $k = 4$, and consider varying $m$. The closed cohort nature of the design means that an internal pilot is not an option, as all individuals and clusters are recruited at the outset. An external pilot, while possible, might be expected to yield imprecise estimates if it is to be considerably smaller than the definitive trial. We will, therefore, not consider re-estimation in this example, focussing instead on finding a fixed design which is robust to uncertainty in the four nuisance parameters.
-
 \section{Methods}\label{sec:methods}
 
-We consider the choice of sample size for a trial aiming to estimate some parameter of interest, $\mu$, and test the null hypothesis $H_0: \mu = 0$ with a significance level $\alpha$ against an alternative hypotheses $H_1: \mu = \mu_1$. We denote the nuisance parameter by $\sigma$, its estimate by $\hat{\sigma}$, and the sample size by $n$. Both $\sigma$ and $n$ may be vectors. We denote the power of the trial by $\beta(n, \mu, \sigma)$, assuming from herein that $\alpha = 0.05$ (two-sided). We assume that, all other things being equal, a higher powered trial is preferred to a lower powered trial, and a trial of smaller sample size is preferred to a larger one. 
+We consider the choice of sample size for a trial aiming to estimate some parameter of interest, $\mu$, and test the null hypothesis $H_0: \mu = \mu_0$ against an alternative hypotheses $H_1: \mu = \mu_1$ with a (two-sided) type I error rate of $\alpha$. We denote the nuisance parameter by $\sigma$, its estimate by $\hat{\sigma}$, and the sample size by $n$. Both $\sigma$ and $n$ may be vectors. We denote the power of the trial by $\beta(n, \mu, \sigma)$, assuming from herein that $\alpha = 0.05$. We assume that, all other things being equal, a higher powered trial is preferred to a lower powered trial, and a trial of smaller sample size is preferred to a larger one. 
 
 \subsection{Constrained design}
 
-% Keep simple - one method is to get an estimate and use this under the contrained approach.
-% Numerous variants, such as inflating the estimate, improsing upper and/or lower caps on the definitive n, adjusting the definitive n to avoid bias. For simplicity, focus on the basic method.
-
-The conventional approach to sample size determination sets a constraint on the trial's power and finds
+The conventional approach to sample size determination sets a constraint on the trial's power, $\beta^*$, and finds
 \begin{equation}
-n^*_c (\mu_1, \hat{\sigma}, \beta^*) = {\arg\min}_{n \in \mathbb{N}}~ n ~\text{ subject to } ~ \beta(n, \mu_1, \hat{\sigma}) \leq \beta^*.
+n^*_c (\mu_1, \sigma, \beta^*) = {\arg\min}_{n \in \mathbb{N}}~ n ~\text{ subject to } ~ \beta(n, \mu_1, \sigma) \leq \beta^*.
 \end{equation}
-The chosen sample size $n^*_c$ depends on the target difference $\mu_1$, the estimated nuisance parameter $\hat{\sigma}$, and the nominal type II error rate $\beta^*$. Although originally intended to be set at a level appropriate to the specific context \cite{}, a convention of arbitrarily setting $\beta^* = 0.2$ or 0.1 has emerged \cite{Bacchetti2019}. When $n^*_c$ is found to be infeasibly large, it is common to inflate the target difference $\mu_1$ from the true MCID to a higher value and thus reduce the required sample size \cite{Schulz2005}.
+The chosen sample size $n^*_c$ depends on the target difference $\mu_1$, the nuisance parameter $\sigma$, and the nominal type II error rate $\beta^*$. Although originally intended to be set at a level appropriate to the specific context \cite{Neyman1933}, a convention of arbitrarily setting $\beta^* = 0.2$ or 0.1 has emerged \cite{Bacchetti2019}. When $n^*_c$ is considered to be infeasibly large, it is common to inflate the target difference $\mu_1$ from the true MCID to a higher value and thus reduce the required sample size to a feasible value \cite{Schulz2005}.
 
-When $\mu_1$ and $\beta^*$ are fixed, the sample size is a function of the estimated nuisance parameter only. When there is uncertainty in this estimate, it has been recommended that it be inflated to guard against choosing a sample size which is too low (in the sense of leading to a power less than the nominal level). For example, when the estimate $\hat{\sigma}$ has a confidence interval around it, the upper end of that interval may be used instead \cite{Browne1995, Teare2014, Whitehead2015}. This approach is justified as being `conservative' in the sense that it will likely lead to a trial with power greater than the nominal rate, since $n^*_c$ is strictly increasing in $\hat{\sigma}$. 
+When $\mu_1$ and $\beta^*$ are fixed, the sample size is a function of the nuisance parameter only. In practice, $\sigma$ will never be known and an estimate, $\hat{\sigma}$, must be used in its place. When there is some uncertainty in this estimate, it has been recommended that it be inflated to guard against choosing a sample size which is too low (in the sense of leading to a power less than the nominal level). For example, when the estimate $\hat{\sigma}$ has a confidence interval around it, the upper end of that interval may be used instead \cite{Browne1995, Teare2014}. This approach is justified as being `conservative' in the sense that it will likely lead to a trial with power greater than the nominal rate, since $n^*_c$ is strictly increasing in $\hat{\sigma}$. 
 
 \subsection{Value-based design}
-
-% Need to add a fixed cost to the value function, so that we eventually decide to abandon the trial if the sd is too large.
-% Elicit this by using our hypothetical power curve and choosing the n where we become indifferent between that n (and corresponding power) and not running the trial at all. 
-% Gives a consistency check - can plot the region where value is <= 0, and this should include the point n = 0.
-% So now, if the whole power curve is in the region of v <= 0 then we don't want to do the trial.
-% Assume pilot fixed costs are 0, which is conservative in the sense that the argument for a simple fixed design will be stronger (and pragmatic since we will often run the pilot anyway for feasibility reasons so we effectively have it for free).
 
 An alternative approach to SSD is to choose the point which maximises a \emph{value} function $v(n, \beta): \mathbb{N} \times [0,1] \rightarrow \mathbb{R}$ which describes our preferences between all possible pairs of sample size and type II error. Specifically, $v$ is such that
 $$
 (n, \beta) \text{ is preferred to }(n', \beta') \Leftrightarrow v(n, \beta) > v(n', \beta').
 $$
-That such a function exists follows from some decision-theoretic axioms \cite{French2000}. Regarding the specific functional form, we can safely assume that for any fixed $\beta$, $v_(n, \beta)$ as a function of $n$ and of $\beta$ will be strictly decreasing. We further assume that it will also be linear in each of these terms. That is, we assume the cost of increasing the sample size by some amount $\Delta$ is independent of the starting point $(n, \beta)$, and similarly for $\beta$. The value function will then be of the form
+That such a function exists follows from some decision-theoretic axioms \cite{French2000}. Given this value function, we then find
+$$
+n^*_v (\mu_1, \sigma, \beta^*) = {\arg\min}_{n \in \mathbb{N}}~ v(n, \beta(n, \mu_1, \sigma)).
+$$
+
+To determine the function which 
+
+Regarding the specific functional form, we can safely assume that for any fixed $\beta$, $v_(n, \beta)$ as a function of $n$ and of $\beta$ will be strictly decreasing. We further assume that it will also be linear in each of these terms. That is, we assume the cost of increasing the sample size by some amount $\Delta$ is independent of the starting point $(n, \beta)$, and similarly for $\beta$. The value function will then be of the form
 $$
 v(n, \beta) = (1 - \beta) - \lambda n.
 $$
@@ -352,6 +311,10 @@ Ethics of underpowered and overpowered studies.
 \cite{Bakker2020} - Recommendations in pre-registrations and internal review board proposals promote formal power analyses but do not increase sample size
 
 \subsection{Re-estimation}
+
+One approach to addressing uncertainty in nuisance parameter values is to conduct a small \emph{pilot} trial prior to the planned definitive study \cite{Browne1995, Gould2001, Friede2006}. The pilot data can then be used to estimate the nuisance parameter, with this estimate then being used in the sample size calculation of the definitive trial. This leads to the definitive trial sample size being a random variable (a function of the pilot trial estimate),  meaning a certain degree of precision in the pilot estimate is required to avoid excessive variability in the main trial sample size, and the cost of sampling in the pilot must be weigh
+
+traded-off against the benefits it will bring \cite{Teare2014, Whitehead2015}. In some cases, such as in cluster randomised trials, sufficient precision is not attainable within the constraints of a pilot study \cite{Lake2002, Eldridge2015}. When the pilot will deliver a sufficiently  precise estimate, it may nevertheless be an undesirable procedure due to logistical reasons. For example, a long-term primary endpoint would cause significant delay to starting the definitive trial if it must first be measured in a pilot trial. Thus, pilot estimation may not always be the best way to address uncertainty in the nuisance parameter.
 
 In the fixed design setting, with a single estimate $\hat{\sigma}$, the sample size samba may allow sampling costs to be considered implicitly and thus arrive at the same design choice as would be obtained using the value method. It is, however, an opaque approach, and when the true MCID has been decided upon and published it will not be possible at all. In the re-estimation setting, where we expect at least one further estimate $\hat{\sigma}_2$ to be obtained, it is not possible since the MCID will have already been declared. Following the conventional approach will then force us to accept potentially absurb inflations to the sample size to maintain the same power, or to stop recruiting to the trial and just analyse the data obtained by that point. If re-estimating using the value-based method, any increases in the sample size will be bounded.
 

@@ -591,6 +591,7 @@ ggplot(sols, aes(m, n)) +
   geom_tile(aes(fill = max_r)) + 
   geom_contour(aes(z = max_r)) +
   geom_point(data = sols_points, aes(shape = t)) +
+  scale_fill_gradient(low="white", high=cols[5]) +
   theme_minimal() +
   labs(fill = "Max regret",
        shape = " ")
@@ -609,6 +610,7 @@ df <- expand.grid(var_b = seq(0.0001, 0.05, l=100),
 df$reg <- apply(df, 1, function(z) get_reg(z[1:2], m = mm_opt$m, n = mm_opt$n))
 
 ggplot(df, aes(p_0, var_b, fill = reg)) + geom_tile() + 
+#ggplot(df, aes(p_0, var_b, z = reg)) + geom_contour() + 
   geom_rect(xmin = 0.6, xmax = 0.8, ymin  = 0.01, ymax = 0.04, fill = NA, colour = "black", linetype = 2) +
   xlab("Control probability") + ylab("Between cluster variance") +
   labs(fill = "Regret") +
