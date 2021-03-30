@@ -267,7 +267,7 @@ plots2[[i]] <- ggplot(rbind(df[,-3], df2), aes(sig, n, colour=t, linetype=t)) + 
 
 
 
-When given a point and interval estimate of $\sigma$, we can choose $n$ to minimaise the maximum regret over that interval. 
+When given a point and interval estimate of $\sigma$, we can choose $n$ to minimise the maximum regret over that interval. 
 
 Look at a specific point estimate and interval. For each scenario, plot the values of (i) the optimal n, (ii) the minimax n, and (iii) the locally optimal n at the point estimate.
 
@@ -467,6 +467,85 @@ for(i in 1:nrow(params)){
 
 (plots5[[1]] + plots5[[2]]) /(plots5[[3]] + plots5[[4]]) + plot_layout(guides = "collect") & theme(legend.position = 'bottom')
 ```
+
+
+It might be useful to give a table of (minimax regret) optimal sample sizes for a range of scenarios. One approach is to determine value function parameters such that the (value) optimal sample size is typical in some way. For example, we could find a value function corresponding to choosing 80% power to detect a standardised effect size of 0.3.
+
+Note that standardised effect size is all that matters, i.e. we can fix the standard deviation in our examples.
+
+Need a function to determine $\lambda$, given $\gamma$, $\mu$, $\sigma$ and $\beta$.
+
+```{r}
+df <- expand.grid(gamma = c(0.0001, 2),
+                  ses = c(0.3, 0.5, 0.7),
+                  beta = c(0.1, 0.2))
+
+df$n <- apply(df, 1, function(z) power.t.test(delta = z[2], power = 1 - z[3])$n)
+
+f_lambda <- function(lambda, gamma, ses, beta)
+{
+  df2 <- data.frame(n=seq(4,5000,1))
+  df2$sig <- 1
+  df2$p <- 1-pt(qt(0.975, 2*(df2$n-1)), 2*(df2$n-1), ses/sqrt(2/df2$n))
+  df2$v <- v(df2$n, df2$p, lambda, gamma)
+  
+  n_v <- df2[which.min(df2$v), "n"]
+  n_v
+}
+
+get_lambda <- function(gamma, ses, beta, target)
+{
+  # Bisection search
+  lo <- 0.000001; hi <- 1
+  conv <- F
+  while(!conv){
+    l <- (lo + hi)/2
+    n_v <- f_lambda(l, gamma, ses, beta)
+    dif <- n_v - target
+    if( dif > 0 & dif < 1){
+      conv <- T
+    } else {
+      if(dif < 0){
+        hi <- l
+      } else {
+        lo <- l
+      }
+    }
+  }
+  l
+}
+
+df$lambda <- apply(df, 1, function(z) get_lambda(z[1], z[2], z[3], z[4]))
+
+df <- cbind(df, k = rep(c(5, 10, 20, 40, 80), each = 12))
+
+# Now get minimax regret design for each scenario and a range of pilot dof
+get_mm_reg <- function(lambda, gamma, k, ses)
+{
+  lo <- sqrt(k*1^2/qchisq(0.975, k)) 
+  up <- sqrt(k*1^2/qchisq(0.025, k)) 
+  
+  sigs <- seq(lo, up, l = 200)
+  ns <- c(0, 2:500)
+  
+  vs <- matrix(rep(NA, length(sigs)*length(ns)), ncol = length(sigs))
+  for(j in 1:nrow(vs)){
+    for(i in 1:ncol(vs)){
+      p <- 0
+      if(ns[j] != 0 ) p <- 1-pt(qt(0.975, 2*(ns[j]-1)), 2*(ns[j]-1), ses/sqrt(2*sigs[i]/ns[j]))
+      vs[j, i] <- v(ns[j], p, lambda, gamma)
+    }
+  }
+  
+  opt_v <- -apply(vs, 2, min)
+  regs <- t(t(vs) + opt_v)
+  ns[which.min(apply(regs, 1, max))]
+}
+
+df$mm_reg <- apply(df, 1, function(z) get_mm_reg(z[5], z[1], z[6], z[2]))
+```
+
+
 ## Binary cRCT
 
 Rutterford2015
@@ -616,6 +695,12 @@ ggplot(df, aes(p_0, var_b, fill = reg)) + geom_tile() +
   labs(fill = "Regret") +
   theme_minimal()
 ```
+
+# Sample size re-estimation
+
+A potentially useful extension of the above is to the SSR/pilot setting. The key difference is that we must move from value to utility, since the final attributes (sample size, power) will now be uncertain. We can stick with a frequentist framework, though.
+
+First, external pilots. 
 
 # Superceded
 

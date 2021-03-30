@@ -83,7 +83,7 @@ When $\mu_1$ and $\beta^*$ are fixed, the sample size is a function of the nuisa
 
 \subsection{Value-based design}
 
-An alternative approach to SSD is to choose the point which maximises a \emph{value} function $v(n, \beta): \mathbb{N} \times [0,1] \rightarrow \mathbb{R}$ which describes our preferences between all possible pairs of sample size and type II error. Specifically, $v$ is such that
+An alternative approach to SSD is to describe our preferences regarding sample size and type II error rates with a \emph{value} function $v(n, \beta): \mathbb{N} \times [0,1] \rightarrow \mathbb{R}$. Specifically, $v$ is such that
 $$
 (n, \beta) \text{ is preferred to }(n', \beta') \Leftrightarrow v(n, \beta) > v(n', \beta').
 $$
@@ -92,9 +92,9 @@ $$
 n^*_v (\mu_1, \sigma, \beta^*) = {\arg\min}_{n \in \mathbb{N}}~ v(n, \beta(n, \mu_1, \sigma)).
 $$
 
-To determine the function which 
+We propose that a value function will have the following attributes. Firstly, value will 
 
-Regarding the specific functional form, we can safely assume that for any fixed $\beta$, $v_(n, \beta)$ as a function of $n$ and of $\beta$ will be strictly decreasing. We further assume that it will also be linear in each of these terms. That is, we assume the cost of increasing the sample size by some amount $\Delta$ is independent of the starting point $(n, \beta)$, and similarly for $\beta$. The value function will then be of the form
+Regarding the specific functional form, we can assume that for any fixed $\beta$, $v_(n, \beta)$ as a function of $n$ and of $\beta$ will be strictly decreasing. We further assume that it will also be linear in each of these terms. That is, we assume the cost of increasing the sample size by some amount $\Delta$ is independent of the starting point $(n, \beta)$, and similarly for $\beta$. The value function will then be of the form
 $$
 v(n, \beta) = (1 - \beta) - \lambda n.
 $$
