@@ -161,76 +161,81 @@ Note - we have effectively looked at how the method works when we use power as a
 
 Note - following on from the above, could we consider an extension to using expected effect as a metric to balance against sample size, where exp effect is the true effect multiplied by the trial power. Again, we'd be assuming that the trade-off is linear. The essential method would be the same, looking for an such that we get minimax regret over the unkown parameter space, but the latter is now 2D with delats and sigma both unknown.
 
-Consider a two-arm trial with a normal endpoint which will compare the means in each group via a t-test. We propose four example value functions
+Consider a two-arm trial with a normal endpoint which will compare the means in each group via a t-test. Denote the variance of the endpoint (common across arms) by $\sigma^2$, and the target difference under the alternative hypothesis (which the trial will be powered to detect) by $\delta_a$. Let the sample size in each arm of the trial be denoted by $n$.
+
+We propose two value functions:
 $$
-v(n, 1-\beta)
+\begin{align}
+v_1(n; \lambda_1, c_1) & = \overbrace{1 - \Phi\left(z_{1 - \alpha} - \frac{\delta_a}{\sqrt{2\sigma^2/n}}\right)}^\textrm{Power} - \lambda_1 n - c_1 \\
+v_2(n; \lambda_2, c_2) & = \underbrace{\sqrt{\frac{n}{2\sigma^2}}}_\textrm{Precision} - \lambda_2 n - c_2.
+\end{align}
 $$
-which define indifference curves over the space of sample sizes and powers.
+
+Each value function has a benefit component (the power of the trial and the sampling precision of the estimated mean difference, respectively) offset by a cost component (a multiple of the sample size in each case). These value functions imply a constant trade-off between the sample size of the trial and its power/precision, with the rate given by the parameters $\lambda_1$ and $\lambda_2$. They also include fixed set-up costs, $c_1$ and $c_2$.
+
+To illustrate these value functions, we plot contours and overlay these with specific power and precision curves. Note that we have fixed $\delta_a = 0.3$ and $\alpha = 0.025$.
 
 ```{r}
-
-pow <- function(n, sig)
-{
-  #power.t.test(n = n, delta = 0.3, sd = sig)$power
-  1-pt(qt(0.975, 2*(n-1)), 2*(n-1), 0.3/sqrt(2*sig^2/n))
-  #sqrt(n/(2*sig^2))
+v1 <- function(n, sig, lambda1, c1) {
+  delta_a <- 0.3
+  1-pt(qt(0.975, 2*(n-1)), 2*(n-1), 0.3/sqrt(2*sig^2/n)) - lambda1*n - c1
 }
 
-v <- function(n, p, lambda, gamma)
-{
-  # Value function
-  -(log(p*gamma + 1)/log(gamma + 1) - lambda*n) #- lambda*20*(n > 0)) #0.3365181*(n > 0))
-  # Adding a fixed penalty v(100, pow(100, 1), lambda, gamma),
-  # So now for any value < 0 we are better to not run the trial
+v2 <- function(n, sig, lambda2, c2) {
+  sqrt(n/(2*sig^2)) - lambda2*n - c2
 }
 
-n1 <- 176; sig <- 1
-pow(n1, sig)
-lambda1 <- grad(pow, n1, sig=sig)
-gamma1 <- 0.00001
+# Define some example trade-offs
+lambda1 <- c(0.00224, 0.00392); lambda2 <- c(0.02668, 0.0337)
+# These have been chosen to give optimal sample sizes 
+# of 176 and 110, corresponding to power of 60 and 80% to 
+# detect an effect of 0.3 when sigma = 1
+# ns <- 2:500; ns[which.max(sapply(ns, v1, sig = 1, c1 = 0, lambda1 = 0.01))]
 
-#n2 <- 235; sig <- 1
-n2 <- 110; sig <- 1
-pow(n2, sig)
-lambda2 <- grad(pow, n2, sig=sig)
-gamma2 <- 2
-
-params <- matrix(c(lambda1, gamma1,
-                   0.00157, gamma2,
-                   lambda2, gamma1,
-                   0.00325, gamma2), ncol = 2, byrow = T)
+# Take a common fixed cost in units of sample size
+n_cost <- 15
+c1 <- lambda1*n_cost; c2 <- lambda2*n_cost
 
 plots <- vector("list", 4)
-for(i in 1:nrow(params)){
-  lambda <- params[i, 1]; gamma <- params[i, 2]
+for(i in 1:4){
+  lambda <- c(lambda1, lambda2)[i]
+  C <- c(c1, c2)[i]
   
   df <- data.frame(n=seq(4,500,1))
   df <- rbind(df, df)
   df$sig <- c(rep(1, nrow(df)/2), rep(1.3*1, nrow(df)/2))
-  df$p <- pow(df$n, df$sig)
-  df$v <- v(df$n, df$p, lambda, gamma)
+  if(i < 3){
+    df$v <- v1(n = df$n, sig = df$sig, lambda1 = lambda, c1 = C)
+  } else {
+    df$v <- v2(n = df$n, sig = df$sig, lambda2 = lambda, c2 = C)
+  }
+  df$p <- df$v + lambda*df$n + C
   
-  df[which.min(df$v*(df$sig == 1)),]
-  
-  opt1 <- df[which.min(df$v*(df$sig == 1)),]
-  opt2 <- df[which.min(df$v*(df$sig == 1.3)),]
+  opt1 <- df[which.max(df$v*(df$sig == 1)),]
+  opt2 <- df[which.max(df$v*(df$sig == 1.3)),]
   
   gr <- expand.grid(n = seq(4, 500, l = 10),
-                    p = seq(0, 1, l = 10))
-  gr$v <- v(gr$n, gr$p, lambda, gamma)
+                    p = seq(min(df$p), max(df$p), l = 10))
+  gr$v <- gr$p - lambda*gr$n - C
   
   plots[[i]] <- ggplot(df, aes(n, p)) + geom_line(aes(colour=as.factor(sig))) +
     geom_hline(yintercept = 0.8, linetype=2) +
     geom_contour(data = gr, aes(z = v), alpha = 0.5, colour = cols[3]) +
-    geom_contour(data = gr, aes(z = v), breaks = c(0), colour = cols[4]) +
+    geom_contour(data = gr, aes(z = v), breaks = c(C), colour = cols[4]) +
     geom_point(data = df[as.numeric(row.names(rbind(opt1, opt2))), ]) +
-    ylab("Power") + xlab("Sample size") +
+    xlab("Sample size") +
     scale_colour_manual(values=cols[1:2], labels=round(c(sig, 1.3*sig), 2)) +
     labs(colour = "SD") +
     theme_minimal()
+  
+  if(i < 3){
+    plots[[i]] <- plots[[i]] + ylab("Power")
+  } else {
+    plots[[i]] <- plots[[i]] + ylab("Precision")
+  }
 }
 
-(plots[[1]] + plots[[2]]) /(plots[[3]] + plots[[4]]) + plot_layout(guides = "collect") & theme(legend.position = 'bottom')
+(plots[[1]] + plots[[3]]) /(plots[[2]] + plots[[4]]) + plot_layout(guides = "collect") & theme(legend.position = 'bottom')
 ```
 
 This figure shows the indifference curves in each case. Power as a function of $n$ is shown for two possible values of the nuisance parameter $\sigma$ and an MCID of 0.3, and the optimal (value-maximising) sample size is highlighted for each of these. The pink line denotes the contour below which it becomes optimal to not run the trial at all due to the setup costs.
