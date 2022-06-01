@@ -564,162 +564,75 @@ df$mm_reg <- apply(df, 1, function(z) get_mm_reg(z[5], z[1], z[6], z[2]))
 
 Can we extend these ideas to deal with uncertainty in the effect? One approach is to change our value function to one focussed on expected effectiveness, rather than on power (or precision). That is, we assume a linear trade-off between sample size and power x effect. We then proceed as before, but now we have a 2D parameter space. We may find that the choice of n is not as robust to movement in this space.
 
+So main methods (power and precision), extension (effectiveness), and illustrative application?
+
 ```{r}
-pow <- function(n, delta, sig)
-{
-  suppressWarnings(1-pt(qt(0.975, 2*(n-1)), 2*(n-1), delta/sqrt(2*sig^2/n)))
-}
-
-v <- function(n, delta, sig)
-{
-  1-pt(qt(0.975, 2*(n-1)), 2*(n-1), delta/sqrt(2*sig^2/n)) - lambda*n
-}
-
-deltas <- seq(0, 0.5, length.out = 10^2)
+# Define s[ace to get value over]
+deltas <- seq(-0.25, 0.75, length.out = 10^2)
 sigs <- seq(0.5, 1.5, length.out = 10^2)
-ns <- seq(2, 5, length.out = 10^2)
+ns <- 2:50
 
 df <- expand.grid(d = deltas,
                   s = sigs,
                   n = ns)
 
-lambda <- 0.1
+# Calculate value at each point
+lambda <- 0.001
 df$v  <- df$d*(1-pt(qt(0.975, 2*(df$n-1)), 2*(df$n-1), df$d/sqrt(2*df$s^2/df$n))) - lambda*df$n
 
-
+# Reshape into params x n format
 df2 <- reshape(df, direction = "wide", idvar = c("d", "s"), timevar = "n", v.names = "v")
 
+# Plot value of optimal n at each parameter point
+df3 <- df2[,1:2]
+df3$v <- apply(df2[,3:ncol(df2)], 1, max)
 
-
-
-
-
-df2
-df <- data.frame(n=seq(4,500,1))
-df <- rbind(df, df)
-  df$sig <- c(rep(1, nrow(df)/2), rep(1.3*1, nrow(df)/2))
-  df$p <- pow(df$n, df$sig)
-  df$v <- v(df$n, df$p, lambda, gamma)
-  
-  df[which.min(df$v*(df$sig == 1)),]
-  
-  opt1 <- df[which.min(df$v*(df$sig == 1)),]
-  opt2 <- df[which.min(df$v*(df$sig == 1.3)),]
-  
-  gr <- expand.grid(n = seq(4, 500, l = 10),
-                    p = seq(0, 1, l = 10))
-  gr$v <- v(gr$n, gr$p, lambda, gamma)
-  
-  plots[[i]] <- ggplot(df, aes(n, p)) + geom_line(aes(colour=as.factor(sig))) +
-    geom_hline(yintercept = 0.8, linetype=2) +
-    geom_contour(data = gr, aes(z = v), alpha = 0.5, colour = cols[3]) +
-    geom_contour(data = gr, aes(z = v), breaks = c(0), colour = cols[4]) +
-    geom_point(data = df[as.numeric(row.names(rbind(opt1, opt2))), ]) +
-    ylab("Power") + xlab("Sample size") +
-    scale_colour_manual(values=cols[1:2], labels=round(c(sig, 1.3*sig), 2)) +
-    labs(colour = "SD") +
+ggplot(df3, aes(d)) + geom_tile(aes(y = s, fill = v)) +
+    scale_fill_viridis(discrete=FALSE) +
     theme_minimal()
 
-delta <- -.3
-ns <- 2:500
-ps <- pow(ns, delta)
-vs <- v(ns, ps, delta)
-ns[which.max(vs)]
-ps[which.max(vs)]
-plot(ns, vs)
+# Plot value of fixed n at each parameter point
+ns <- 2:50
+vs <- 0.25*(1-pt(qt(0.975, 2*(ns-1)), 2*(ns-1), 0.25/sqrt(2*1^2/ns))) - lambda*ns
+fix_n <- ns[which.max(vs)]
+df4 <- df3
+df4$v <- df2[,2 + which.max(vs)]
 
-deltas <- seq(-1, 1.5, 0.01)
-opt_ns <- NULL; opt_ps <- NULL
-for(i in 1:length(deltas)){
-  delta <- deltas[i]
-  ps <- pow(ns, delta)
-  vs <- v(ns, ps, delta)
-  opt_ns <- c(opt_ns, ns[which.max(vs)])
-  opt_ps <- c(opt_ps, ps[which.max(vs)])
-}
-plot(deltas, opt_ns)
-points(deltas, 150*opt_ps, col="red")
+ggplot(df4, aes(d)) + geom_tile(aes(y = s, fill = v)) +
+    scale_fill_viridis(discrete=FALSE) +
+    theme_minimal()
 
-x <- 200
-deltas <- c(seq(-1, 0, 0.02), seq(0.3, 1.5, 0.02))#seq(-1, 1.5, 0.02)
-regs <- NULL
-for(i in 1:length(deltas)){
-  delta <- deltas[i]
-  ns <- 2:500
-  ps <- pow(ns, delta)
-  vs <- v(ns, ps, delta)
-  regs <- c(regs, max(vs) - v(x, pow(x, delta), delta))
-}
-max(regs)
+# Plot difference in value
+ggplot(df4, aes(d)) + geom_tile(aes(y = s, fill = v - df3$v)) +
+    scale_fill_viridis(discrete=FALSE) +
+    theme_minimal()
 
-x <- 500
-deltas <- seq(-1, 1.5, 0.02)
-vs <- NULL
-for(i in 1:length(deltas)){
-  delta <- deltas[i]
-  ps <- pow(x, delta)
-  vs <- c(vs, v(x, ps, delta))
-}
-min(vs)
+# Find the optimal (minimax regret) n
+df5 <- df2
+df5[,3:ncol(df5)] <- df3$v - df5[,3:ncol(df5)]
+max_reg <- apply(df5[,3:ncol(df5)], 2, max)
+opt_n <- ns[which.min(max_reg)]
 
-  
-  
-  delta <- deltas[i]
-  ps <- pow(ns, delta)
-  vs <- v(ns, ps, delta)
-  opt_ns <- c(opt_ns, ns[which.max(vs)])
-  opt_ps <- c(opt_ps, ps[which.max(vs)])
-}
-plot(deltas, opt_ns)
-points(deltas, 150*opt_ps, col="red")
+# Plot value of opt n at each parameter point
+df5$v <- df2[,2 + which.min(max_reg)]
 
+ggplot(df5, aes(d)) + geom_tile(aes(y = s, fill = v)) +
+    scale_fill_viridis(discrete=FALSE) +
+    theme_minimal()
 
-n1 <- 176; delta <- 0.3
-pow(n1, delta)
-lambda1 <- grad(pow, n1, delta = delta)
-gamma1 <- 0.00001
-
-sigs <- seq(0.1, 3, l = 200)
-  ns <- c(0, 2:500)
-  
-  vs <- matrix(rep(NA, length(sigs)*length(ns)), ncol = length(sigs))
-  for(j in 1:nrow(vs)){
-    for(k in 1:ncol(vs)){
-      p <- 0
-      if(ns[j] != 0 ) p <- pow(ns[j], sigs[k])
-      vs[j, k] <- v(ns[j], p, lambda, gamma)
-    }
-  }
-  
-  # Get value of optimal designs
-  opt_v_all <- -apply(vs, 2, min)
-  
-  # Get minimax design
-  vs_sub <- vs[, sigs >= lo & sigs <= up]
-  opt_v <- -apply(vs_sub, 2, min)
-  regs <- t(t(vs_sub) + opt_v)
-  n <- ns[which.min(apply(regs, 1, max))]
-  minmax_v <- -vs[which.min(apply(regs, 1, max)),]
-    
-  # Use the point estimate
-  vals <- v(ns[-1], pow(ns[-1], df$sig[j]), lambda, gamma)
-  vals <- c(v(0, 0, lambda, gamma), vals)
-  n_fix <- ns[which.min(vals)]
-  fix_v <- -vs[which.min(vals),]
-  #fix_v <- -vs[20,]
-  
-  df <- data.frame(sig = rep(sigs, 3),
-                   v = c(opt_v_all, minmax_v, fix_v),
-                   t = rep(c("Local", "Minimax", "Fixed"), each = length(sigs)))
-  
-  plots4[[i]] <- ggplot(df, aes(sig, v, colour = t)) + geom_line() +
-    scale_colour_manual(name = "", values = cols) +
-    geom_vline(xintercept = c(lo, up), linetype = 2) +
-    ylab("Value") + xlab("Standard deviation") +
+# Plot difference in value
+ggplot(df5, aes(d)) + geom_tile(aes(y = s, fill = v - df3$v)) +
+    scale_fill_viridis(discrete=FALSE) +
     theme_minimal()
 ```
 
+So we find here that there is more sensitivity over typical ranges, that a standard fixed design or central estimates performs poorly, but that we can improve significantly by finding the minimax design.
+
+# Superceded
+
 ## Binary cRCT
+
+If we have the effectiveness measure above, we have already looked at a 2D parameter space. So do we need this example? Or is it enough to put in the discussion that it's easy to apply to other cases, e.g. using a power metric in a binary setting with control rate in place of the sd? Could potentially include this (and others?) in an appendix. Or go in the other direction and make it explicitly limited to our continuous case, but then make the most of this by developing an R package which implements the above methods and thus helps with uptake? 
 
 Rutterford2015
 
@@ -869,13 +782,7 @@ ggplot(df, aes(p_0, var_b, fill = reg)) + geom_tile() +
   theme_minimal()
 ```
 
-# Sample size re-estimation
 
-A potentially useful extension of the above is to the SSR/pilot setting. The key difference is that we must move from value to utility, since the final attributes (sample size, power) will now be uncertain. We can stick with a frequentist framework, though.
-
-First, external pilots. 
-
-# Superceded
 
 ## Running example
 
