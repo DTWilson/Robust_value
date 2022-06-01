@@ -153,6 +153,14 @@ In this document we will develop applications of a value-based approach to sampl
 
 ## t-test
 
+Note - if we want to include a stepped wedge trial as an example or extension, a recent paper Korevaar2021 has compiled a database of correlation estimates and has a Shiny app for obtaining plausible ranges of these.
+
+Note - if looking at cluster trials, Copas2021 have just published a paper on optimal design when cluster size can be varied which includes a section on parameter uncertainty where they find the design that gives power over a specified range.
+
+Note - we have effectively looked at how the method works when we use power as a metric of study value. Instead of playing around with this (with log transforms), we can instead look at another potential metric - precision. In both cases we argue that these will be value indpenendant of sample size, so a constant rate of substitution which does not depend on either current power/precision or current sample. So still have four scenarios to illustrate - power and precision metrics, each parameterised twice to give certain optimal ns for example sds. When we look at precision we see an even more extreme relationship where the minimax regret n depends almost completely on the point estimate and not on the interval. This scenario is also analytically tractable - we can get closed form locally optimal ns, possibly max regret too.
+
+Note - following on from the above, could we consider an extension to using expected effect as a metric to balance against sample size, where exp effect is the true effect multiplied by the trial power. Again, we'd be assuming that the trade-off is linear. The essential method would be the same, looking for an such that we get minimax regret over the unkown parameter space, but the latter is now 2D with delats and sigma both unknown.
+
 Consider a two-arm trial with a normal endpoint which will compare the means in each group via a t-test. We propose four example value functions
 $$
 v(n, 1-\beta)
@@ -160,16 +168,18 @@ $$
 which define indifference curves over the space of sample sizes and powers.
 
 ```{r}
+
 pow <- function(n, sig)
 {
   #power.t.test(n = n, delta = 0.3, sd = sig)$power
   1-pt(qt(0.975, 2*(n-1)), 2*(n-1), 0.3/sqrt(2*sig^2/n))
+  #sqrt(n/(2*sig^2))
 }
 
 v <- function(n, p, lambda, gamma)
 {
   # Value function
-  -(log(p*gamma + 1)/log(gamma + 1) - lambda*n - lambda*20*(n > 0)) #0.3365181*(n > 0))
+  -(log(p*gamma + 1)/log(gamma + 1) - lambda*n) #- lambda*20*(n > 0)) #0.3365181*(n > 0))
   # Adding a fixed penalty v(100, pow(100, 1), lambda, gamma),
   # So now for any value < 0 we are better to not run the trial
 }
@@ -240,7 +250,7 @@ for(i in 1:nrow(params)){
   lambda <- params[i, 1]; gamma <- params[i, 2]
   
   df <- data.frame(sig=seq(0.1,5,0.01))
-  df$n <- sapply(df$sig, function(x) which.min(v(3:500, pow(3:500, x), lambda, gamma)) + 2)
+  df$n <- sapply(df$sig, function(x) which.min(v(3:1000, pow(3:1000, x), lambda, gamma)) + 2)
   df$v <- v(df$n, pow(df$n, df$sig), lambda, gamma)
   df$n <- df$n*(df$v < 0)
   df$t <- "v"
@@ -252,7 +262,7 @@ for(i in 1:nrow(params)){
   lims <- c(lims, lim)
 
   df2 <- data.frame(sig=seq(0.1,5,0.01))
-  df2$n <- sapply(df$sig, function(x) which(pow(3:500, x) >= (0.8*(i %in% c(1,2)) + 0.6*(i %in% c(3,4))))[1] + 2)
+  df2$n <- sapply(df$sig, function(x) which(pow(3:1000, x) >= (0.8*(i %in% c(1,2)) + 0.6*(i %in% c(3,4))))[1] + 2)
   df2$t <- "c"
 
 plots2[[i]] <- ggplot(rbind(df[,-3], df2), aes(sig, n, colour=t, linetype=t)) + geom_line() +
@@ -270,6 +280,8 @@ plots2[[i]] <- ggplot(rbind(df[,-3], df2), aes(sig, n, colour=t, linetype=t)) + 
 When given a point and interval estimate of $\sigma$, we can choose $n$ to minimise the maximum regret over that interval. 
 
 Look at a specific point estimate and interval. For each scenario, plot the values of (i) the optimal n, (ii) the minimax n, and (iii) the locally optimal n at the point estimate.
+
+[Add value of upper CI design; place these after the minimax graphs]
 
 ```{r}
 sig <- 1; k <- 30
@@ -386,7 +398,7 @@ for(i in 1:nrow(params)){
 (plots3[[1]] + plots3[[2]]) /(plots3[[3]] + plots3[[4]]) + plot_layout(guides = "collect") & theme(legend.position = 'bottom')
 ```
 
-[To do - repeat above getting the constrained n and / or the upper CI n, and plot the differences, so we can show the practical implications]
+[To do - repeat above getting the constrained n and / or the upper CI n, and plot the differences, so we can show the practical implications. All might be better in SM / appendix]
 
 ```{r}
 ggplot(df, aes(k)) + geom_tile(aes(y = sig, fill = r_fix - r)) +
@@ -476,7 +488,7 @@ Note that standardised effect size is all that matters, i.e. we can fix the stan
 Need a function to determine $\lambda$, given $\gamma$, $\mu$, $\sigma$ and $\beta$.
 
 ```{r}
-df <- expand.grid(gamma = c(0.0001, 2),
+df <- expand.grid(gamma = c(0.0001, 2, 20),
                   ses = c(0.3, 0.5, 0.7),
                   beta = c(0.1, 0.2))
 
@@ -517,7 +529,7 @@ get_lambda <- function(gamma, ses, beta, target)
 
 df$lambda <- apply(df, 1, function(z) get_lambda(z[1], z[2], z[3], z[4]))
 
-df <- cbind(df, k = rep(c(5, 10, 20, 40, 80), each = 12))
+df <- cbind(df, k = rep(c(5, 10, 20, 40, 80), each = nrow(df)))
 
 # Now get minimax regret design for each scenario and a range of pilot dof
 get_mm_reg <- function(lambda, gamma, k, ses)
@@ -543,8 +555,169 @@ get_mm_reg <- function(lambda, gamma, k, ses)
 }
 
 df$mm_reg <- apply(df, 1, function(z) get_mm_reg(z[5], z[1], z[6], z[2]))
+
+
 ```
 
+
+## Uncertain effect size
+
+Can we extend these ideas to deal with uncertainty in the effect? One approach is to change our value function to one focussed on expected effectiveness, rather than on power (or precision). That is, we assume a linear trade-off between sample size and power x effect. We then proceed as before, but now we have a 2D parameter space. We may find that the choice of n is not as robust to movement in this space.
+
+```{r}
+pow <- function(n, delta, sig)
+{
+  suppressWarnings(1-pt(qt(0.975, 2*(n-1)), 2*(n-1), delta/sqrt(2*sig^2/n)))
+}
+
+v <- function(n, delta, sig)
+{
+  1-pt(qt(0.975, 2*(n-1)), 2*(n-1), delta/sqrt(2*sig^2/n)) - lambda*n
+}
+
+deltas <- seq(0, 0.5, length.out = 10^2)
+sigs <- seq(0.5, 1.5, length.out = 10^2)
+ns <- seq(2, 5, length.out = 10^2)
+
+df <- expand.grid(d = deltas,
+                  s = sigs,
+                  n = ns)
+
+lambda <- 0.1
+df$v  <- df$d*(1-pt(qt(0.975, 2*(df$n-1)), 2*(df$n-1), df$d/sqrt(2*df$s^2/df$n))) - lambda*df$n
+
+
+df2 <- reshape(df, direction = "wide", idvar = c("d", "s"), timevar = "n", v.names = "v")
+
+
+
+
+
+
+df2
+df <- data.frame(n=seq(4,500,1))
+df <- rbind(df, df)
+  df$sig <- c(rep(1, nrow(df)/2), rep(1.3*1, nrow(df)/2))
+  df$p <- pow(df$n, df$sig)
+  df$v <- v(df$n, df$p, lambda, gamma)
+  
+  df[which.min(df$v*(df$sig == 1)),]
+  
+  opt1 <- df[which.min(df$v*(df$sig == 1)),]
+  opt2 <- df[which.min(df$v*(df$sig == 1.3)),]
+  
+  gr <- expand.grid(n = seq(4, 500, l = 10),
+                    p = seq(0, 1, l = 10))
+  gr$v <- v(gr$n, gr$p, lambda, gamma)
+  
+  plots[[i]] <- ggplot(df, aes(n, p)) + geom_line(aes(colour=as.factor(sig))) +
+    geom_hline(yintercept = 0.8, linetype=2) +
+    geom_contour(data = gr, aes(z = v), alpha = 0.5, colour = cols[3]) +
+    geom_contour(data = gr, aes(z = v), breaks = c(0), colour = cols[4]) +
+    geom_point(data = df[as.numeric(row.names(rbind(opt1, opt2))), ]) +
+    ylab("Power") + xlab("Sample size") +
+    scale_colour_manual(values=cols[1:2], labels=round(c(sig, 1.3*sig), 2)) +
+    labs(colour = "SD") +
+    theme_minimal()
+
+delta <- -.3
+ns <- 2:500
+ps <- pow(ns, delta)
+vs <- v(ns, ps, delta)
+ns[which.max(vs)]
+ps[which.max(vs)]
+plot(ns, vs)
+
+deltas <- seq(-1, 1.5, 0.01)
+opt_ns <- NULL; opt_ps <- NULL
+for(i in 1:length(deltas)){
+  delta <- deltas[i]
+  ps <- pow(ns, delta)
+  vs <- v(ns, ps, delta)
+  opt_ns <- c(opt_ns, ns[which.max(vs)])
+  opt_ps <- c(opt_ps, ps[which.max(vs)])
+}
+plot(deltas, opt_ns)
+points(deltas, 150*opt_ps, col="red")
+
+x <- 200
+deltas <- c(seq(-1, 0, 0.02), seq(0.3, 1.5, 0.02))#seq(-1, 1.5, 0.02)
+regs <- NULL
+for(i in 1:length(deltas)){
+  delta <- deltas[i]
+  ns <- 2:500
+  ps <- pow(ns, delta)
+  vs <- v(ns, ps, delta)
+  regs <- c(regs, max(vs) - v(x, pow(x, delta), delta))
+}
+max(regs)
+
+x <- 500
+deltas <- seq(-1, 1.5, 0.02)
+vs <- NULL
+for(i in 1:length(deltas)){
+  delta <- deltas[i]
+  ps <- pow(x, delta)
+  vs <- c(vs, v(x, ps, delta))
+}
+min(vs)
+
+  
+  
+  delta <- deltas[i]
+  ps <- pow(ns, delta)
+  vs <- v(ns, ps, delta)
+  opt_ns <- c(opt_ns, ns[which.max(vs)])
+  opt_ps <- c(opt_ps, ps[which.max(vs)])
+}
+plot(deltas, opt_ns)
+points(deltas, 150*opt_ps, col="red")
+
+
+n1 <- 176; delta <- 0.3
+pow(n1, delta)
+lambda1 <- grad(pow, n1, delta = delta)
+gamma1 <- 0.00001
+
+sigs <- seq(0.1, 3, l = 200)
+  ns <- c(0, 2:500)
+  
+  vs <- matrix(rep(NA, length(sigs)*length(ns)), ncol = length(sigs))
+  for(j in 1:nrow(vs)){
+    for(k in 1:ncol(vs)){
+      p <- 0
+      if(ns[j] != 0 ) p <- pow(ns[j], sigs[k])
+      vs[j, k] <- v(ns[j], p, lambda, gamma)
+    }
+  }
+  
+  # Get value of optimal designs
+  opt_v_all <- -apply(vs, 2, min)
+  
+  # Get minimax design
+  vs_sub <- vs[, sigs >= lo & sigs <= up]
+  opt_v <- -apply(vs_sub, 2, min)
+  regs <- t(t(vs_sub) + opt_v)
+  n <- ns[which.min(apply(regs, 1, max))]
+  minmax_v <- -vs[which.min(apply(regs, 1, max)),]
+    
+  # Use the point estimate
+  vals <- v(ns[-1], pow(ns[-1], df$sig[j]), lambda, gamma)
+  vals <- c(v(0, 0, lambda, gamma), vals)
+  n_fix <- ns[which.min(vals)]
+  fix_v <- -vs[which.min(vals),]
+  #fix_v <- -vs[20,]
+  
+  df <- data.frame(sig = rep(sigs, 3),
+                   v = c(opt_v_all, minmax_v, fix_v),
+                   t = rep(c("Local", "Minimax", "Fixed"), each = length(sigs)))
+  
+  plots4[[i]] <- ggplot(df, aes(sig, v, colour = t)) + geom_line() +
+    scale_colour_manual(name = "", values = cols) +
+    geom_vline(xintercept = c(lo, up), linetype = 2) +
+    ylab("Value") + xlab("Standard deviation") +
+    theme_minimal()
+```
 
 ## Binary cRCT
 

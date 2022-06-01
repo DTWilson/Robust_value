@@ -46,7 +46,7 @@
 
 Outline:
 
-Intro. Scope - deciding on the main trial sample size based on available point and interval estimates.
+Intro. Scope - deciding on the main trial sample size based on available point and interval estimates. Costs and benefits. The incoherence of the constrained approach.
 
 Methods - constrained and value-based for known $\sigma$; and for unknown $\sigma$
 
@@ -59,13 +59,13 @@ Discussion - key points are: "under/overpowered" trials and ethical arguments; t
 
 \section{Introduction}\label{sec:intro}
 
-When designing a clinical trial, the standard approach to sample size determination (SSD) is to choose the smallest sample size which will ensure that the power of the trial will be greater than a pre-specified nominal threshold (often 80 or 90\%). Power is defined in relation to a target effect size (specifically, the minimal clinically important difference \cite{Cook2018}), and under some modelling assumptions. These assumptions will typically include the value of one or more nuisance parameters in the model, and so these must be estimated prior to the trial. Incorrect estimates can lead to the actual power of the trial differing from the planned power. The greater the error in estimation, the greater the discrepancy between planned and actual power.
+NOTE - consider speed of recruitment in value function? If cost is mostly determined by time spent recruiting / following up, as opposed to by number recruited. So, a fast recruiting trial would be cheaper than a slow recruiting one in the sense that we'd be happier to have a large sample size and high power.
 
-%The conventional approach to SSD does not formally allow for the costs of sampling to be taken into account. Informally, this is often done through the so-called `sample size samba' \cite{Schulz2005}. This is the common procedure whereby the MCID declared for a study is iteratively adjusted until the sample size required for nominal power is considered feasible. This is not an option when using a pilot trial to estimate the nuisance parameter, as the MCID will have been declared prior to the estimate being obtained. This results in an incoherent procedure in the sense that a sample size calculation based on an estimate could lead to very different choices depending on whether the estimate came from a pilot or from some other external source. We would argue that a SSD procedure should lead to the same decision whenever the same inputs are used.
+When designing a clinical trial, the standard approach to sample size determination (SSD) is to choose the smallest sample size which will ensure that the power of the trial will be greater than a pre-specified threshold (often 80 or 90\%). Power is defined in relation to a target effect size (specifically, the minimal clinically important difference \cite{Cook2018}), and under some modelling assumptions. These assumptions will typically include the value of one or more nuisance parameters in the model, and so these must be estimated prior to the trial. Incorrect estimates can lead to the actual power of the trial differing from the planned power. The greater the error in estimation, the greater the discrepancy between planned and actual power.
 
-We propose an alternative approach to SSD which explicitly accounts for both the benefits and costs of the trial. We do this through introducing a value function, a linear combination of the trial's power and its sample size, and choosing the sample size which maximises value. We will show that this simple value-based approach leads to a coherent re-estimation procedure with good operating characteristics and, in many cases, can eliminate the need for re-estimation altogether by finding designs which are robust to uncertainty in nuisance parameters.
+The conventional approach to SSD does not formally allow for the costs of sampling to be taken into account, and this leads to incoherent decisions. We propose an alternative approach to SSD which explicitly accounts for costs via a value function and choosing the sample size which maximises value. 
 
-The remainder of this paper is organised as follows. Two motivating examples are introduced in Section \ref{sec:examples}. In Section \ref{sec:methods} we define the conventional method for SSD and introduce the value-based alternative. These are then applied to the motivating examples in Section \ref{sec:examples}. We consider some extensions to the basic method in Section \ref{sec:extensions}, before concluding with a discussion in Section \ref{sec:discussion}.
+The remainder of this paper is organised as follows. In Section \ref{sec:methods} we define the conventional method for SSD and introduce the value-based alternative. These are then applied to the motivating examples in Section \ref{sec:illustration}. We consider some extensions to the basic method in Section \ref{sec:extensions}, before concluding with a discussion in Section \ref{sec:discussion}.
 
 \section{Methods}\label{sec:methods}
 
@@ -132,7 +132,7 @@ We can use a Monte Carlo approximation, generating a set of nuisance parameter s
 n^*_f (\mu_1, \Sigma, \delta^*) = \arg\max_{n \in \mathbb{N}} \sum_{i=1}^N I[\delta(\sigma^{(i)} | n) \leq \delta^*].
 \end{equation}
 
-\section{Application to the examples}\label{sec:application}
+\section{Application to the examples}\label{sec:illustration}
 
 \subsection{Cluster randomised trial}
 
@@ -334,9 +334,13 @@ Thinking about powering for a target difference. The recommended approach is to 
 
 Another metric in the lieterature is power over n, or the number of patients required per successful trial. In our t test example, we find the cosntrained method outperforms the value based on this metric when we initially overestimate sigma. It would be helpful to unpack this value function, campare it to our additive one, and understand why these differences arrise.
 
-Note that in low powered trials, estimates will be biased if we condition on significance, and this bias can be very large. Following NP testing properly this isn't an issue, as we are meant to abandon any hope of learning anything about the specific case in hand. In practice this might be considered a drawback, so we could potentially include this bias in our value function.
+Note that in low powered trials, estimates will be biased if we condition on significance, and this bias can be very large. Following NP testing properly this isn't an issue, as we are meant to abandon any hope of learning anything about the specific case in hand. In practice this might be considered a drawback, so we could potentially include this bias in our value function. But this is perhaps taking the testing set-up too seriously. Similarly when we have argued that value of power could decease as it approaches 1, since then a faithful testing approach would lead us to accepting treatments with effects only marginally better than 0. But really we should be thinking of power as a surrogate for value as a function of sample size, which we expect to be convex and bounded. From this perspective, the extra value functions not linear in power are maybe not that interesting, and could be relegated to an appendix to help explore the robustness of the main results.
 
 If including alpha in the value function as an extension, in the discussion note that we could fix the power curve at 0.5 at the point of indifference, meaning we only have one free parameter to deal with.
+
+See \cite{Smaldino2016} for an evolutionary model of science arguing that low power is bad practice. If we want to accommodative the idea that low power should be avoided, we can increase set-up costs. This may lead to a narrow window of opportunity, since increasing setup will also lower the point at which the trial is so overpowered as to be not worth doing at all. Might need something else, exploring how the value-based approach would work when applied across many trials - setup might be key here again. Could start by choosing the sample size of two trials simultaneously - at some point on the setup costs scale, it will be better to invest in just one (in the sense of getting more value).
+
+Note that assigning low value to low power means we will typically favour not doing a study at all (even a free one with no set-up costs) than a low power one. But we have to make a decision, and not running a study means an effective error rate of alpha = 0, beta = 1. 
 
 \begin{acks}
 Acknowledgements.
