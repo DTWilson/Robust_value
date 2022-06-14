@@ -224,7 +224,7 @@ for(i in 1:4){
     geom_contour(data = gr, aes(z = v), breaks = c(C), colour = cols[4]) +
     geom_point(data = df[as.numeric(row.names(rbind(opt1, opt2))), ]) +
     xlab("Sample size") +
-    scale_colour_manual(values=cols[1:2], labels=round(c(sig, 1.3*sig), 2)) +
+    scale_colour_manual(values=cols[1:2], labels=round(c(1, 1.3), 2)) +
     labs(colour = "SD") +
     theme_minimal()
   
@@ -238,7 +238,7 @@ for(i in 1:4){
 (plots[[1]] + plots[[3]]) /(plots[[2]] + plots[[4]]) + plot_layout(guides = "collect") & theme(legend.position = 'bottom')
 ```
 
-This figure shows the indifference contours in each case. Power/precision as a function of $n$ is shown for two possible values of the nuisance parameter $\sigma$ and an MCID of 0.3, and the optimal (value-maximising) sample size is highlighted for each of these specific cases. The pink line denotes the contour below which it becomes optimal to not run the trial at all due to the setup costs.
+This figure shows the indifference contours in each case. Power (Left column) and precision (right column) as a function of $n$ is shown for two possible values of the nuisance parameter $\sigma$ (1 and 1.3) and an MCID of 0.3, and the optimal (value-maximising) sample size is highlighted for each of these specific cases. The pink line denotes the contour below which it becomes optimal to not run the trial at all due to the setup costs.
 
 The parameters $\lambda_1$ and $\lambda_2$ have been chosen so that the optimal design when $\sigma = 1$ is either $n = 176$ (top row) or $n = 110$ (bottom row). This corresponds to a power of 0.8  or 0.6, respectively.
 
@@ -257,7 +257,7 @@ for(i in 1:4){
   lambda <- c(lambda1, lambda2)[i]
   C <- c(c1, c2)[i]
   
-  df <- expand.grid(sig = seq(0.1, 3, 0.1),
+  df <- expand.grid(sig = seq(0.5, 2, 0.1),
                     n = 2:500)
   if(i < 3){
     df$v <- v1(n = df$n, sig = df$sig, lambda1 = lambda, c1 = C)
@@ -300,70 +300,11 @@ for(i in 1:4){
   
   
 
-(plots2[[1]] + plots2[[2]]) /(plots2[[3]] + plots2[[4]]) + plot_layout(guides = "collect") & theme(legend.position = 'bottom')
+(plots2[[1]] + plots2[[3]]) /(plots2[[2]] + plots2[[4]]) + plot_layout(guides = "collect") & theme(legend.position = 'bottom')
 ```
+For all cases, we find that the value of the optimal, simple, and minimax regret ns are pretty similiar over the interval estimate of $\sigma$. This suggests that a fixed design can be very robust to misspecification of $\sigma$ (since moving to the optimal n would not improve value by much), and that the simple fixed design is almost as good a choice as the minimax regret design.
 
-
-
-When given a point and interval estimate of $\sigma$, we can choose $n$ to minimise the maximum regret over that interval. 
-
-Look at a specific point estimate and interval. For each scenario, plot the values of (i) the optimal n, (ii) the minimax n, and (iii) the locally optimal n at the point estimate.
-
-[Add value of upper CI design; place these after the minimax graphs]
-
-```{r}
-sig <- 1; k <- 30
-lo <- sqrt(k*sig^2/qchisq(0.975, k)) 
-up <- sqrt(k*sig^2/qchisq(0.025, k)) 
-
-plots4 <- vector("list", 4)
-for(i in 1:nrow(params)){
-  # Now compute an n x sig matrix of values
-  lambda <- params[i,1]; gamma <- params[i, 2]
-  sigs <- seq(0.1, 3, l = 200)
-  ns <- c(0, 2:500)
-  
-  vs <- matrix(rep(NA, length(sigs)*length(ns)), ncol = length(sigs))
-  for(j in 1:nrow(vs)){
-    for(k in 1:ncol(vs)){
-      p <- 0
-      if(ns[j] != 0 ) p <- pow(ns[j], sigs[k])
-      vs[j, k] <- v(ns[j], p, lambda, gamma)
-    }
-  }
-  
-  # Get value of optimal designs
-  opt_v_all <- -apply(vs, 2, min)
-  
-  # Get minimax design
-  vs_sub <- vs[, sigs >= lo & sigs <= up]
-  opt_v <- -apply(vs_sub, 2, min)
-  regs <- t(t(vs_sub) + opt_v)
-  n <- ns[which.min(apply(regs, 1, max))]
-  minmax_v <- -vs[which.min(apply(regs, 1, max)),]
-    
-  # Use the point estimate
-  vals <- v(ns[-1], pow(ns[-1], df$sig[j]), lambda, gamma)
-  vals <- c(v(0, 0, lambda, gamma), vals)
-  n_fix <- ns[which.min(vals)]
-  fix_v <- -vs[which.min(vals),]
-  #fix_v <- -vs[20,]
-  
-  df <- data.frame(sig = rep(sigs, 3),
-                   v = c(opt_v_all, minmax_v, fix_v),
-                   t = rep(c("Local", "Minimax", "Fixed"), each = length(sigs)))
-  
-  plots4[[i]] <- ggplot(df, aes(sig, v, colour = t)) + geom_line() +
-    scale_colour_manual(name = "", values = cols) +
-    geom_vline(xintercept = c(lo, up), linetype = 2) +
-    ylab("Value") + xlab("Standard deviation") +
-    theme_minimal()
-}
-
-(plots4[[1]] + plots4[[2]]) /(plots4[[3]] + plots4[[4]]) + plot_layout(guides = "collect") & theme(legend.position = 'bottom')
-```
-
-Now find the optimal (i.e. minimax regret) design for a range of point estimates and intervals (summarised by their dof).
+This was for a specific choice of point and interval estimate of $\sigma$. We would like to see what happens when these vary - in particular, does the minimax regret n vary with them? We do this by making a grid of point estimates and degrees of freedom, and plotting the resulting minimax regret n.
 
 ```{r}
 df <- expand.grid(sig = seq(0.3, 2, l = 50),
@@ -373,33 +314,44 @@ df$up <- sqrt(df$k*df$sig^2/qchisq(0.025, df$k))
 df$n <- df$n_ci <- df$n_nct <- NA
 
 plots3 <- vector("list", 4)
-for(i in 1:nrow(params)){
-  # Now compute an n x sig matrix of values
-  lambda <- params[i,1]; gamma <- params[i, 2]
+for(i in 1:4){
+  lambda <- c(lambda1, lambda2)[i]
+  cost <- c(c1, c2)[i]
+  
+  # Compute an n x sig matrix of values
   sigs <- seq(min(df$lo), max(df$up), l = 200)
-  ns <- c(0, 2:500)
+  ns <- c(2:500) # TO ADD - start with 0 for not progressing
   
   vs <- matrix(rep(NA, length(sigs)*length(ns)), ncol = length(sigs))
   for(j in 1:nrow(vs)){
     for(k in 1:ncol(vs)){
-      p <- 0
-      if(ns[j] != 0 ) p <- pow(ns[j], sigs[k])
-      vs[j, k] <- v(ns[j], p, lambda, gamma)
+      if(i < 3) {
+        vs[j, k] <- v1(ns[j], sigs[k], lambda, cost)
+      } else {
+        vs[j, k] <- v2(ns[j], sigs[k], lambda, cost)
+      }
     }
   }
   
+  # For each scenario (point and interval estimate), find the minimax 
+  # regret n
   for(j in 1:nrow(df)){
+    # Restrict value matrix to the interval
     vs_sub <- vs[, sigs >= df[j, "lo"] & sigs <= df[j, "up"]]
-    opt_v <- -apply(vs_sub, 2, min)
-    regs <- t(t(vs_sub) + opt_v)
-    df$n[j] <- ns[which.min(apply(regs, 1, max))]
-    df$r[j] <- min(apply(regs, 1, max))
+    # Get vector of optimal values
+    opt_v <- apply(vs_sub, 2, max)
+    # Get matrix of regrets (+ve is worse)
+    regs <- -t(t(vs_sub) - opt_v)
+    # Get vector of max regrets
+    max_regs <- apply(regs, 1, max)
+    # Find minimax regret n and the n which achieves it
+    df$n[j] <- ns[which.min(max_regs)]
+    df$r[j] <- min(max_regs)
     
     # Use the point estimate only
-    vals <- v(ns[-1], pow(ns[-1], df$sig[j]), lambda, gamma)
-    vals <- c(v(0, 0, lambda, gamma), vals)
-    df$n_fix[j] <- ns[which.min(vals)]
-    df$r_fix[j] <- max(regs[which(ns == df$n_fix[j]),])
+    #vals <- vs[,50]
+    #df$n_fix[j] <- ns[which.max(vals)]
+    #df$r_fix[j] <- max(regs[which(ns == df$n_fix[j]),])
   
     # Use the upper CI point, as in Browne
     #df$n_ci[j] <- which(pow(3:1500, df$up[j]) >= 0.8)[1] + 2
@@ -415,7 +367,7 @@ for(i in 1:nrow(params)){
   }
   
   plots3[[i]] <- ggplot(df, aes(k)) + geom_tile(aes(y = sig, fill = n)) +
-    scale_fill_viridis(discrete=FALSE, limits = c(0,250)) + 
+    scale_fill_viridis(discrete=FALSE, limits = c(0,500)) + 
       geom_line(data = df[df$sig == 1,], aes(y = up)) +
       geom_line(data = df[df$sig == 1,], aes(y = lo)) +
       ylim(c(0.3, 2)) +
@@ -423,20 +375,12 @@ for(i in 1:nrow(params)){
     theme_minimal()
 }
 
-(plots3[[1]] + plots3[[2]]) /(plots3[[3]] + plots3[[4]]) + plot_layout(guides = "collect") & theme(legend.position = 'bottom')
+(plots3[[1]] + plots3[[3]]) /(plots3[[2]] + plots3[[4]]) + plot_layout(guides = "collect") & theme(legend.position = 'bottom')
 ```
+
+These plots show that if we use power in our value function, there is not a lot of variation in the minimax regret n over possible point and interval estimates. Most of the variation comes from the point estimate, suggesting that a more precise pilot estimate *at the same point* is not of much value. This is shown in starker terms when using precision, where the minimax regret n now depends sharply on the point estimate (increasing as the point estimate decreses) but again is not sensitive to the interval around it.
 
 [To do - repeat above getting the constrained n and / or the upper CI n, and plot the differences, so we can show the practical implications. All might be better in SM / appendix]
-
-```{r}
-ggplot(df, aes(k)) + geom_tile(aes(y = sig, fill = r_fix - r)) +
-    scale_fill_viridis(discrete=FALSE) + #, limits = c(0,250)) + 
-      geom_line(data = df[df$sig == 1,], aes(y = up)) +
-      geom_line(data = df[df$sig == 1,], aes(y = lo)) +
-      ylim(c(0.3, 2)) +
-    ylab("Point estimate SD") + xlab("Degrees of freedom") +
-    theme_minimal()
-```
 
 For a specific estimate and interval, plot the minimax regret for each scenario for each n and highlight the optimal n and other choices.
 
@@ -591,6 +535,8 @@ df$mm_reg <- apply(df, 1, function(z) get_mm_reg(z[5], z[1], z[6], z[2]))
 ## Uncertain effect size
 
 Can we extend these ideas to deal with uncertainty in the effect? One approach is to change our value function to one focussed on expected effectiveness, rather than on power (or precision). That is, we assume a linear trade-off between sample size and power x effect. We then proceed as before, but now we have a 2D parameter space. We may find that the choice of n is not as robust to movement in this space.
+
+Strong rationale for this approach - can clearly argue that the value of power at a fixed point is highly dependant on how likely we think that point is. E.g. very low value for power at unrealistically high points, except where meiated through implied power at realistic points (though this will be tending to 1).
 
 So main methods (power and precision), extension (effectiveness), and illustrative application?
 
