@@ -314,6 +314,7 @@ df$up <- sqrt(df$k*df$sig^2/qchisq(0.025, df$k))
 df$n <- df$n_ci <- df$n_nct <- NA
 
 plots3 <- vector("list", 4)
+plots4 <- vector("list", 4)
 for(i in 1:4){
   lambda <- c(lambda1, lambda2)[i]
   cost <- c(c1, c2)[i]
@@ -334,7 +335,7 @@ for(i in 1:4){
   }
   
   # For each scenario (point and interval estimate), find the minimax 
-  # regret n
+  # regret n along with simple fixed and upper CI ns
   for(j in 1:nrow(df)){
     # Restrict value matrix to the interval
     vs_sub <- vs[, sigs >= df[j, "lo"] & sigs <= df[j, "up"]]
@@ -349,12 +350,26 @@ for(i in 1:4){
     df$r[j] <- min(max_regs)
     
     # Use the point estimate only
-    #vals <- vs[,50]
-    #df$n_fix[j] <- ns[which.max(vals)]
-    #df$r_fix[j] <- max(regs[which(ns == df$n_fix[j]),])
+    sig <- df$sig[j]
+    # Most relevant set of values
+    vals <- vs[,which(sigs > sig)[1]]
+    df$n_fix[j] <- ns[which.max(vals)]
+    df$r_fix[j] <- max(regs[which(ns == df$n_fix[j]),])
   
     # Use the upper CI point, as in Browne
-    #df$n_ci[j] <- which(pow(3:1500, df$up[j]) >= 0.8)[1] + 2
+    sig <- df$up[j]
+    # Get power of all ns
+    pows <- v1(ns, sig, lambda, cost) + lambda*ns + cost
+    # Choose lowest n with 80% power at upper ci, or maximum n if none 
+    # satisfy that constraint
+    if(sum(pows > 0.8) > 0){
+      df$n_ci[j] <- ns[which(pows > 0.8)[1]]
+      df$r_ci[j] <- max(regs[which(ns == df$n_ci[j]),])
+    } else {
+      df$n_ci[j] <- max(ns)
+    }
+    df$r_ci[j] <- max(regs[which(ns == df$n_ci[j]),])
+
         
     # Use the non-central t method of Julious
     #ns2 <- 3:1000
@@ -364,6 +379,12 @@ for(i in 1:4){
     #  z <- (2*qt(0.8, df$k[j], qt(0.975, 2*ns2 - 2))^2)*(df$sig[j]^2)/(0.3794427^2)
     #}
     #df$n_nct[j] <- ns2[ns2 >= z][1]
+    
+
+    if(j == 571) {
+      df2 <- data.frame(n = ns)
+      df2$r <- max_regs
+    }
   }
   
   plots3[[i]] <- ggplot(df, aes(k)) + geom_tile(aes(y = sig, fill = n)) +
@@ -373,35 +394,53 @@ for(i in 1:4){
       ylim(c(0.3, 2)) +
     ylab("Point estimate SD") + xlab("Degrees of freedom") +
     theme_minimal()
+  
+  df3 <- data.frame(n = c(df$n[571], df$n_fix[571], df$n_ci[571]),
+                    r = c(df$r[571], df$r_fix[571], df$r_ci[571]),
+                    t = c("Minimax", "Simple", "Upper CI"))
+  
+  plots4[[i]] <- ggplot(df2, aes(n, r)) + geom_line() +
+      geom_point(data = df3, aes(colour = t)) +
+    scale_colour_manual(name = "", values = cols[c(1,3,4)]) +
+    ylab("Maximum regret") + xlab("Sample size") +
+    theme_minimal()
 }
 
 (plots3[[1]] + plots3[[3]]) /(plots3[[2]] + plots3[[4]]) + plot_layout(guides = "collect") & theme(legend.position = 'bottom')
 ```
 
-These plots show that if we use power in our value function, there is not a lot of variation in the minimax regret n over possible point and interval estimates. Most of the variation comes from the point estimate, suggesting that a more precise pilot estimate *at the same point* is not of much value. This is shown in starker terms when using precision, where the minimax regret n now depends sharply on the point estimate (increasing as the point estimate decreses) but again is not sensitive to the interval around it.
+These plots show that if we use power in our value function, there is not a lot of variation in the minimax regret n over possible point and interval estimates. Most of the variation comes from the point estimate, suggesting that a more precise pilot estimate *at the same point* is not of much value. This is shown in starker terms when using precision, where the minimax regret n now depends sharply on the point estimate (increasing as the point estimate decreases) but again is not sensitive to the interval around it.
 
 [To do - repeat above getting the constrained n and / or the upper CI n, and plot the differences, so we can show the practical implications. All might be better in SM / appendix]
 
-For a specific estimate and interval, plot the minimax regret for each scenario for each n and highlight the optimal n and other choices.
+The final thing to examine is how the maximum regret varies with n for a specific point and interval estimate, so we can show how the minimax regret n compares against the simple fixed n and alternatives, particularly the n chosen using the upper end of the interval. Code is embedded in the above to avoid replication.
 
 ```{r}
+(plots4[[1]] + plots4[[3]]) /(plots4[[2]] + plots4[[4]]) + plot_layout(guides = "collect") & theme(legend.position = 'bottom')
+```
+
+We find again that, for this specific point and interval example, the simple fixed n (where we maximise value based on the point estimate) is very close or identical to the minimax regret n and thus has a similar or identical maximum regret. This holds in all scenarios. In comparison, the upper CI n (where we choose the smallest n giving 80% power using the upper CI as the estimate) is always much higher and has a much larger maximum regret.
+
+```{r}
+# Set up the specific example point and interval estimate of sigma
 sig <- 1; k <- 30
 lo <- sqrt(k*sig^2/qchisq(0.975, k)) 
 up <- sqrt(k*sig^2/qchisq(0.025, k)) 
 
-plots5 <- vector("list", 4)
-for(i in 1:nrow(params)){
-  # Now compute an n x sig matrix of values
-  lambda <- params[i,1]; gamma <- params[i, 2]
-  sigs <- seq(0.1, 3, l = 200)
-  ns <- c(0, 2:500)
+plots4 <- vector("list", 4)
+for(i in 1:4){
+  lambda <- c(lambda1, lambda2)[i]
+  cost <- c(c1, c2)[i]
+  ns <- c(2:500)
   
   vs <- matrix(rep(NA, length(sigs)*length(ns)), ncol = length(sigs))
   for(j in 1:nrow(vs)){
-    for(q in 1:ncol(vs)){
-      p <- 0
-      if(ns[j] != 0 ) p <- pow(ns[j], sigs[q])
-      vs[j, q] <- v(ns[j], p, lambda, gamma)
+    for(k in 1:ncol(vs)){
+      if(i < 3) {
+        vs[j, k] <- v1(ns[j], sigs[k], lambda, cost)
+      } else {
+        vs[j, k] <- v2(ns[j], sigs[k], lambda, cost)
+      }
     }
   }
   
