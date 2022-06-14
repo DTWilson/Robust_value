@@ -147,31 +147,27 @@ Sim study comparing methods for SSR. As above, but now what is the optimal n_p? 
 Note on NCT method -
 This gives a decision rule such that the overall power of a pilot-then-main trial process is nominal. When limiting ourselves to SSD, this is not a relevant comparator, but it will be for SSR. In practice, it leads to a small increase the the usual constrained design, so just compare against that instead. Note that by implicitly arguing an average power is of the same value as a conditional power, the implied utility (and therefore value) function on power is linear. Note that this is then incompatible with the threshold myth - if the myth holds, we would much prefer a sure thing of 0.85 to a 50/50 gamble between 0.75 and 0.95. In comparison, the upper CI approach can be understood as minimax regret when the value function is a threshold.
 
-## Introduction
-
-In this document we will develop applications of a value-based approach to sample size determination (SSD) when nuisance parameters are unknown. The scope is limited to SSD - we will not consider sample size re-estimation here.
-
-## t-test
-
 Note - if we want to include a stepped wedge trial as an example or extension, a recent paper Korevaar2021 has compiled a database of correlation estimates and has a Shiny app for obtaining plausible ranges of these.
 
 Note - if looking at cluster trials, Copas2021 have just published a paper on optimal design when cluster size can be varied which includes a section on parameter uncertainty where they find the design that gives power over a specified range.
 
-Note - we have effectively looked at how the method works when we use power as a metric of study value. Instead of playing around with this (with log transforms), we can instead look at another potential metric - precision. In both cases we argue that these will be value indpenendant of sample size, so a constant rate of substitution which does not depend on either current power/precision or current sample. So still have four scenarios to illustrate - power and precision metrics, each parameterised twice to give certain optimal ns for example sds. When we look at precision we see an even more extreme relationship where the minimax regret n depends almost completely on the point estimate and not on the interval. This scenario is also analytically tractable - we can get closed form locally optimal ns, possibly max regret too.
+## Introduction
 
-Note - following on from the above, could we consider an extension to using expected effect as a metric to balance against sample size, where exp effect is the true effect multiplied by the trial power. Again, we'd be assuming that the trade-off is linear. The essential method would be the same, looking for an such that we get minimax regret over the unkown parameter space, but the latter is now 2D with delats and sigma both unknown.
+In this document we will develop applications of a value-based approach to sample size determination (SSD) when nuisance parameters are unknown. The scope is limited to SSD - we will not consider sample size re-estimation here.
+
+## t-test running example
 
 Consider a two-arm trial with a normal endpoint which will compare the means in each group via a t-test. Denote the variance of the endpoint (common across arms) by $\sigma^2$, and the target difference under the alternative hypothesis (which the trial will be powered to detect) by $\delta_a$. Let the sample size in each arm of the trial be denoted by $n$.
 
 We propose two value functions:
 $$
 \begin{align}
-v_1(n; \lambda_1, c_1) & = \overbrace{1 - \Phi\left(z_{1 - \alpha} - \frac{\delta_a}{\sqrt{2\sigma^2/n}}\right)}^\textrm{Power} - \lambda_1 n - c_1 \\
+v_1(n; \lambda_1, c_1) & = \underbrace{1 - \Phi\left(z_{1 - \alpha} - \frac{\delta_a}{\sqrt{2\sigma^2/n}}\right)}_\textrm{Power} - \lambda_1 n - c_1 \\
 v_2(n; \lambda_2, c_2) & = \underbrace{\sqrt{\frac{n}{2\sigma^2}}}_\textrm{Precision} - \lambda_2 n - c_2.
 \end{align}
 $$
 
-Each value function has a benefit component (the power of the trial and the sampling precision of the estimated mean difference, respectively) offset by a cost component (a multiple of the sample size in each case). These value functions imply a constant trade-off between the sample size of the trial and its power/precision, with the rate given by the parameters $\lambda_1$ and $\lambda_2$. They also include fixed set-up costs, $c_1$ and $c_2$.
+Each value function has a benefit component (the power of the trial and the sampling precision of the estimated mean difference, respectively) offset by a cost component (a multiple of the sample size and a fixed setup cost in each case). These value functions imply a constant trade-off between the sample size of the trial and its power/precision, with the rate given by the parameters $\lambda_1$ and $\lambda_2$. They also include fixed set-up costs, $c_1$ and $c_2$.
 
 To illustrate these value functions, we plot contours and overlay these with specific power and precision curves. Note that we have fixed $\delta_a = 0.3$ and $\alpha = 0.025$.
 
@@ -238,7 +234,7 @@ for(i in 1:4){
 (plots[[1]] + plots[[3]]) /(plots[[2]] + plots[[4]]) + plot_layout(guides = "collect") & theme(legend.position = 'bottom')
 ```
 
-This figure shows the indifference contours in each case. Power (Left column) and precision (right column) as a function of $n$ is shown for two possible values of the nuisance parameter $\sigma$ (1 and 1.3) and an MCID of 0.3, and the optimal (value-maximising) sample size is highlighted for each of these specific cases. The pink line denotes the contour below which it becomes optimal to not run the trial at all due to the setup costs.
+This figure shows the indifference contours in each case. Power (left column) and precision (right column) as a function of $n$ is shown for two possible values of the nuisance parameter $\sigma$ (1 and 1.3) and an MCID of 0.3, and the optimal (value-maximising) sample size is highlighted for each of these specific cases. The pink line denotes the contour below which it becomes optimal to not run the trial at all due to the setup costs.
 
 The parameters $\lambda_1$ and $\lambda_2$ have been chosen so that the optimal design when $\sigma = 1$ is either $n = 176$ (top row) or $n = 110$ (bottom row). This corresponds to a power of 0.8  or 0.6, respectively.
 
@@ -421,182 +417,49 @@ The final thing to examine is how the maximum regret varies with n for a specifi
 
 We find again that, for this specific point and interval example, the simple fixed n (where we maximise value based on the point estimate) is very close or identical to the minimax regret n and thus has a similar or identical maximum regret. This holds in all scenarios. In comparison, the upper CI n (where we choose the smallest n giving 80% power using the upper CI as the estimate) is always much higher and has a much larger maximum regret.
 
-```{r}
-# Set up the specific example point and interval estimate of sigma
-sig <- 1; k <- 30
-lo <- sqrt(k*sig^2/qchisq(0.975, k)) 
-up <- sqrt(k*sig^2/qchisq(0.025, k)) 
 
-plots4 <- vector("list", 4)
-for(i in 1:4){
-  lambda <- c(lambda1, lambda2)[i]
-  cost <- c(c1, c2)[i]
-  ns <- c(2:500)
-  
-  vs <- matrix(rep(NA, length(sigs)*length(ns)), ncol = length(sigs))
-  for(j in 1:nrow(vs)){
-    for(k in 1:ncol(vs)){
-      if(i < 3) {
-        vs[j, k] <- v1(ns[j], sigs[k], lambda, cost)
-      } else {
-        vs[j, k] <- v2(ns[j], sigs[k], lambda, cost)
-      }
-    }
-  }
-  
-  # Get minimax design
-  vs_sub <- vs[, sigs >= lo & sigs <= up]
-  opt_v <- -apply(vs_sub, 2, min)
-  regs <- t(t(vs_sub) + opt_v)
-  n <- ns[which.min(apply(regs, 1, max))]
-  
-  # Minimax regret for all ns
-  minmax_regs <- apply(regs, 1, max)
-    
-  # Use the point estimate
-  vals <- v(ns[-1], pow(ns[-1], sig), lambda, gamma)
-  vals <- c(v(0, 0, lambda, gamma), vals)
-  n_fix <- ns[which.min(vals)]
-  
-  # Use the upper CI point, as in Browne
-  n_ci <- which(pow(3:1500, up) >= 0.8)[1] + 2
-        
-  # Use the non-central t method of Julious
-  #ns2 <- 3:1000
-  #if(i == 1 | i == 2){
-  #  z <- (2*qt(0.8, k, qt(0.975, 2*ns2 - 2))^2)*(sig^2)/(0.3^2)
-  #} else {
-  #  z <- (2*qt(0.8, k, qt(0.975, 2*ns2 - 2))^2)*(sig^2)/(0.3794427^2)
-    #z <- (2*qt(0.6, k, qt(0.975, 2*ns2 - 2))^2)*(sig^2)/(0.3^2)
-  #}
-  #n_nct <- ns2[ns2 >= z][1]
-  
-  df <- data.frame(n = ns,
-                   r = minmax_regs)
-  
-  df2 <- rbind(df[df$n == n,],
-               df[df$n == n_fix,],
-               df[df$n == n_ci,])
-               #df[df$n == n_nct,])
-  
-  df2$t <- c("Minimax", "Fixed", "Upper CI")
+It might be useful to give a table of (minimax regret) optimal sample sizes for a range of scenarios. One approach is to determine value function parameters such that the (value) optimal sample size is typical in some way. For example, we could find a value function corresponding to choosing 80% power to detect a standardised effect size of 0.3. But this is tricky now since we've added a setup cost, so no unique solution. Better to just provide the software to find the n for any given scenario.
 
-  plots5[[i]] <- ggplot(df, aes(n, r)) + geom_line() +
-      geom_point(data = df2, aes(colour = t)) +
-    scale_colour_manual(name = "", values = cols[c(1,3,4,5)]) +
-    ylab("Maximum regret") + xlab("Sample size") +
-    theme_minimal()
-}
-
-(plots5[[1]] + plots5[[2]]) /(plots5[[3]] + plots5[[4]]) + plot_layout(guides = "collect") & theme(legend.position = 'bottom')
-```
-
-
-It might be useful to give a table of (minimax regret) optimal sample sizes for a range of scenarios. One approach is to determine value function parameters such that the (value) optimal sample size is typical in some way. For example, we could find a value function corresponding to choosing 80% power to detect a standardised effect size of 0.3.
-
-Note that standardised effect size is all that matters, i.e. we can fix the standard deviation in our examples.
-
-Need a function to determine $\lambda$, given $\gamma$, $\mu$, $\sigma$ and $\beta$.
-
-```{r}
-df <- expand.grid(gamma = c(0.0001, 2, 20),
-                  ses = c(0.3, 0.5, 0.7),
-                  beta = c(0.1, 0.2))
-
-df$n <- apply(df, 1, function(z) power.t.test(delta = z[2], power = 1 - z[3])$n)
-
-f_lambda <- function(lambda, gamma, ses, beta)
-{
-  df2 <- data.frame(n=seq(4,5000,1))
-  df2$sig <- 1
-  df2$p <- 1-pt(qt(0.975, 2*(df2$n-1)), 2*(df2$n-1), ses/sqrt(2/df2$n))
-  df2$v <- v(df2$n, df2$p, lambda, gamma)
-  
-  n_v <- df2[which.min(df2$v), "n"]
-  n_v
-}
-
-get_lambda <- function(gamma, ses, beta, target)
-{
-  # Bisection search
-  lo <- 0.000001; hi <- 1
-  conv <- F
-  while(!conv){
-    l <- (lo + hi)/2
-    n_v <- f_lambda(l, gamma, ses, beta)
-    dif <- n_v - target
-    if( dif > 0 & dif < 1){
-      conv <- T
-    } else {
-      if(dif < 0){
-        hi <- l
-      } else {
-        lo <- l
-      }
-    }
-  }
-  l
-}
-
-df$lambda <- apply(df, 1, function(z) get_lambda(z[1], z[2], z[3], z[4]))
-
-df <- cbind(df, k = rep(c(5, 10, 20, 40, 80), each = nrow(df)))
-
-# Now get minimax regret design for each scenario and a range of pilot dof
-get_mm_reg <- function(lambda, gamma, k, ses)
-{
-  lo <- sqrt(k*1^2/qchisq(0.975, k)) 
-  up <- sqrt(k*1^2/qchisq(0.025, k)) 
-  
-  sigs <- seq(lo, up, l = 200)
-  ns <- c(0, 2:500)
-  
-  vs <- matrix(rep(NA, length(sigs)*length(ns)), ncol = length(sigs))
-  for(j in 1:nrow(vs)){
-    for(i in 1:ncol(vs)){
-      p <- 0
-      if(ns[j] != 0 ) p <- 1-pt(qt(0.975, 2*(ns[j]-1)), 2*(ns[j]-1), ses/sqrt(2*sigs[i]/ns[j]))
-      vs[j, i] <- v(ns[j], p, lambda, gamma)
-    }
-  }
-  
-  opt_v <- -apply(vs, 2, min)
-  regs <- t(t(vs) + opt_v)
-  ns[which.min(apply(regs, 1, max))]
-}
-
-df$mm_reg <- apply(df, 1, function(z) get_mm_reg(z[5], z[1], z[6], z[2]))
-
-
-```
 
 
 ## Uncertain effect size
 
-Can we extend these ideas to deal with uncertainty in the effect? One approach is to change our value function to one focussed on expected effectiveness, rather than on power (or precision). That is, we assume a linear trade-off between sample size and power x effect. We then proceed as before, but now we have a 2D parameter space. We may find that the choice of n is not as robust to movement in this space.
+Our approach gives us a principled way to design a trial when there is uncertainty in the nuisance parameter. Can we extend these ideas to deal with uncertainty in the effect? 
 
-Strong rationale for this approach - can clearly argue that the value of power at a fixed point is highly dependant on how likely we think that point is. E.g. very low value for power at unrealistically high points, except where meiated through implied power at realistic points (though this will be tending to 1).
+One approach is to change our value function to one focussed on expected effectiveness, rather than on power (or precision). That is, we assume a linear trade-off between sample size and power $\times$ effect. We then proceed as before, but now we have a 2D parameter space to do our minimax regret operations over. We may find that the choice of n is not as robust to movement in this space.
 
-So main methods (power and precision), extension (effectiveness), and illustrative application?
+Seems to be a strong rationale for this approach - can clearly argue that the value of power at a fixed point is highly dependant on how likely we think that point is. E.g. very low value for power at unrealistically high points, except where mediated through implied power at realistic points (though this will be tending to 1).
 
 ```{r}
-# Define s[ace to get value over]
-deltas <- seq(-0.25, 0.75, length.out = 10^2)
-sigs <- seq(0.5, 1.5, length.out = 10^2)
-ns <- 2:50
+# Value function based on expected effectiveness
+v3 <- function(n, sig, delta, lambda3, c3){
+  p <- 1-pt(qt(0.975, 2*(n-1)), 2*(n-1), delta/sqrt(2*sig^2/n))
+  delta*p - lambda3*n - c3
+}
+
+# Define space to get value over - corresponds to a specific interval estimates
+sig <- 1; delta <- 0.25;  k <- 60
+alpha <- 0.8
+lo <- sqrt(k*sig^2/qchisq(alpha, k)) 
+up <- sqrt(k*sig^2/qchisq(1-alpha, k)) 
+
+deltas <- seq(delta - qnorm(alpha)*1/sqrt(k/2), delta + qnorm(alpha)*1/sqrt(k/2), length.out = 10^2)
+sigs <- seq(lo, up, length.out = 10^2)
+ns <- 2:300
 
 df <- expand.grid(d = deltas,
                   s = sigs,
                   n = ns)
 
-# Calculate value at each point
-lambda <- 0.001
-df$v  <- df$d*(1-pt(qt(0.975, 2*(df$n-1)), 2*(df$n-1), df$d/sqrt(2*df$s^2/df$n))) - lambda*df$n
+# Calculate value at each point for one example choice of lambda
+lambda3 <- 0.0004; c3 <- lambda3*n_cost
+df$v  <- v3(df$n, df$s, df$d, lambda3, c3)
 
 # Reshape into params x n format
 df2 <- reshape(df, direction = "wide", idvar = c("d", "s"), timevar = "n", v.names = "v")
 
-# Plot value of optimal n at each parameter point
+# Plot value of optimal n at each parameter point [analogous to send plots in 
+# running example]
 df3 <- df2[,1:2]
 df3$v <- apply(df2[,3:ncol(df2)], 1, max)
 
@@ -604,42 +467,48 @@ ggplot(df3, aes(d)) + geom_tile(aes(y = s, fill = v)) +
     scale_fill_viridis(discrete=FALSE) +
     theme_minimal()
 
-# Plot value of fixed n at each parameter point
-ns <- 2:50
-vs <- 0.25*(1-pt(qt(0.975, 2*(ns-1)), 2*(ns-1), 0.25/sqrt(2*1^2/ns))) - lambda*ns
+# Plot value of value maximising n for delta = 0.25 and sig = 1 at each 
+# parameter point 
+vs <- delta*(1-pt(qt(0.975, 2*(ns-1)), 2*(ns-1), delta/sqrt(2*sig^2/ns))) - lambda3*ns - c3
 fix_n <- ns[which.max(vs)]
 df4 <- df3
-df4$v <- df2[,2 + which.max(vs)]
+df4$v <- df2[,1 + which.max(vs)]
+fix_n
+1-pt(qt(0.975, 2*(fix_n-1)), 2*(fix_n-1), delta/sqrt(2*sig^2/fix_n))
 
 ggplot(df4, aes(d)) + geom_tile(aes(y = s, fill = v)) +
     scale_fill_viridis(discrete=FALSE) +
     theme_minimal()
 
-# Plot difference in value
-ggplot(df4, aes(d)) + geom_tile(aes(y = s, fill = v - df3$v)) +
+# Plot difference in value between optimal and fixed ns
+ggplot(df4, aes(d)) + geom_tile(aes(y = s, fill = df3$v - v)) +
     scale_fill_viridis(discrete=FALSE) +
     theme_minimal()
 
 # Find the optimal (minimax regret) n
-df5 <- df2
+df5 <- df2 # Contains values
+# For all ns, subtract value of best choice to give regrets
 df5[,3:ncol(df5)] <- df3$v - df5[,3:ncol(df5)]
+# For all ns, find maximum regret over all points
 max_reg <- apply(df5[,3:ncol(df5)], 2, max)
-opt_n <- ns[which.min(max_reg)]
+# Find n which minmaxes regret
+mm_reg_n <- ns[which.min(max_reg)]
+mm_reg_n
 
-# Plot value of opt n at each parameter point
-df5$v <- df2[,2 + which.min(max_reg)]
+# Plot value of minimax regret n at each parameter point
+df5$v <- df2[,1 + which.min(max_reg)]
 
 ggplot(df5, aes(d)) + geom_tile(aes(y = s, fill = v)) +
     scale_fill_viridis(discrete=FALSE) +
     theme_minimal()
 
-# Plot difference in value
-ggplot(df5, aes(d)) + geom_tile(aes(y = s, fill = v - df3$v)) +
+# Plot difference in value i.e. regret
+ggplot(df5, aes(d)) + geom_tile(aes(y = s, fill = df3$v - v)) +
     scale_fill_viridis(discrete=FALSE) +
     theme_minimal()
 ```
 
-So we find here that there is more sensitivity over typical ranges, that a standard fixed design or central estimates performs poorly, but that we can improve significantly by finding the minimax design.
+Big difference here is that the simple fixed n (the one maximising value at the point estimates) is now quite larger than the minimax regret n. Since the value function parameters were chosen to give the former a power of 0.8, this means we have a minimax regret n which gives a power at that point of only 0.5. So we choose to have worse local value at the point, to get improved worst-case performance over the interval. If it seems undesiarable, we could change our interval to make it smaller.
 
 # Superceded
 
