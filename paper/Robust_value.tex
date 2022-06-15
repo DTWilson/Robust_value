@@ -48,89 +48,104 @@ Outline:
 
 Intro. Scope - deciding on the main trial sample size based on available point and interval estimates. Costs and benefits. The incoherence of the constrained approach.
 
-Methods - constrained and value-based for known $\sigma$; and for unknown $\sigma$
+Methods - constrained and value-based for known $\sigma$; and for unknown $\sigma$. Power and precision as value function components. Link the two - contrained is minimising the worst case regret for a lexicographic step value function at a power threshold (or have this in the discussion)
 
-Illustration - apply to a simple two-sample t-test with unknown variance, for a few example value functions, and exploring the impact of different interval estimates.
+Illustration (or include as part of methods) - apply to a simple two-sample t-test with unknown variance, for a few example value functions, for a single point and interval estimate scenario.
 
-Extension - apply to a binary endpoint cRCT to show how to deal with several design parameters and several nuisance parameters; keep one value function and one set of point and interval estimates throughout.
+Evaluation - consider a range of point and interval estimates and show how the sample size (and other characteristics?) varies.
 
-Discussion - key points are: "under/overpowered" trials and ethical arguments; the sample size samba; extending naturally to Bayesian DT formulation by having value on several/a continuum of alternatives; how other methods can be represented in our framework (esp. upper CI method); and teeing up extension to SSR / pilot trial design.
+Illustration - apply to a binary endpoint cRCT to show how to deal with different setups; keep one value function and one set of point and interval estimates throughout.
+
+Extension - incorporating uncertainty in effect size by using an expected effectiveness (or just power again?) metric in the value function.
+
+Discussion - key points are: "under/overpowered" trials and ethical arguments; the sample size samba; extending naturally to Bayesian DT formulation; how other methods can be represented in our framework (esp. upper CI method); teeing up extension to SSR / pilot trial design; extension to other aspects of trial design like recruitment and follow-up rates.
 
 
 \section{Introduction}\label{sec:intro}
 
-NOTE - consider speed of recruitment in value function? If cost is mostly determined by time spent recruiting / following up, as opposed to by number recruited. So, a fast recruiting trial would be cheaper than a slow recruiting one in the sense that we'd be happier to have a large sample size and high power.
+The standard approach to sample size determination (SSD) in Randomised Clinical Trials (RCTs) is to choose the smallest sample size which will give a power of at least a pre-specified threshold value (often 80 or 90\%). Power is defined in relation to a target effect size (specifically, the minimal clinically important difference \cite{Cook2018}), and under an assumed model of the data generating process. This model will typically assume a value for one or more nuisance parameters (such as the standard deviation of a continuous primary outcome), and so these must be estimated prior to the trial. Incorrect nuisance parameter estimates will lead to the actual power of the trial differing from the planned power. The greater the error in estimation, the greater the discrepancy between planned and actual power.
 
-When designing a clinical trial, the standard approach to sample size determination (SSD) is to choose the smallest sample size which will ensure that the power of the trial will be greater than a pre-specified threshold (often 80 or 90\%). Power is defined in relation to a target effect size (specifically, the minimal clinically important difference \cite{Cook2018}), and under some modelling assumptions. These assumptions will typically include the value of one or more nuisance parameters in the model, and so these must be estimated prior to the trial. Incorrect estimates can lead to the actual power of the trial differing from the planned power. The greater the error in estimation, the greater the discrepancy between planned and actual power.
+The conventional approach to SSD does not formally allow for the costs of sampling to be taken into account, which leads to undesirable behaviour. Here, we investigate alternative approaches to SSD which explicitly account for costs, incorporating these into a so-called \emph{value function} which formalises the preferences of the decision maker and leads to defensible sample size decisions.
 
-The conventional approach to SSD does not formally allow for the costs of sampling to be taken into account, and this leads to incoherent decisions. We propose an alternative approach to SSD which explicitly accounts for costs via a value function and choosing the sample size which maximises value. 
-
-The remainder of this paper is organised as follows. In Section \ref{sec:methods} we define the conventional method for SSD and introduce the value-based alternative. These are then applied to the motivating examples in Section \ref{sec:illustration}. We consider some extensions to the basic method in Section \ref{sec:extensions}, before concluding with a discussion in Section \ref{sec:discussion}.
+The remainder of this paper is organised as follows. In Section \ref{sec:methods} we define the conventional method for SSD and introduce the value-based alternative. The performance of these methods is compared in Section \ref{sec:evaluation}, before we illustrate the value-based approach by applying it to an example SSD problem in Section \ref{sec:illustration}. In Section \ref{sec:extensions} we extend to method to allow for SSD based on uncertain estimates of the effect size in addition to nuisance parameters, before concluding with a discussion in Section \ref{sec:discussion}.
 
 \section{Methods}\label{sec:methods}
 
-We consider the choice of sample size for a trial aiming to estimate some parameter of interest, $\mu$, and test the null hypothesis $H_0: \mu = \mu_0$ against an alternative hypotheses $H_1: \mu = \mu_1$ with a (two-sided) type I error rate of $\alpha$. We denote the nuisance parameter by $\sigma$, its estimate by $\hat{\sigma}$, and the sample size by $n$. Both $\sigma$ and $n$ may be vectors. We denote the power of the trial by $\beta(n, \mu, \sigma)$, assuming from herein that $\alpha = 0.05$. We assume that, all other things being equal, a higher powered trial is preferred to a lower powered trial, and a trial of smaller sample size is preferred to a larger one. 
+Although the methods dexribed here are quite general and can be applied in a range of scenarios (as will be shown in Section \ref{sec:illustration}), we will focus on SSD for a two-arm parallel group RCT with a continuous primary outcome assessing the mean difference between groups, denoted by $\mu$. The primary analysis will test the null hypothesis $H_0: \mu = \mu_0$ against an alternative hypotheses $H_1: \mu = \mu_1$ with a (two-sided) type I error rate of $\alpha = 0.05$. We denote the (common between arms) standard deviation by $\sigma$, its estimate by $\hat{\sigma}$, and the sample size by $n$.
 
 \subsection{Constrained design}
 
-The conventional approach to sample size determination sets a constraint on the trial's power, $\beta^*$, and finds
+The conventional approach to sample size determination sets a constraint on the trial's power, $\beta^*$, and finds the smallest $n$ which satisfies that constraint. Formally, we find
 \begin{equation}
 n^*_c (\mu_1, \sigma, \beta^*) = {\arg\min}_{n \in \mathbb{N}}~ n ~\text{ subject to } ~ \beta(n, \mu_1, \sigma) \leq \beta^*.
 \end{equation}
-The chosen sample size $n^*_c$ depends on the target difference $\mu_1$, the nuisance parameter $\sigma$, and the nominal type II error rate $\beta^*$. Although originally intended to be set at a level appropriate to the specific context \cite{Neyman1933}, a convention of arbitrarily setting $\beta^* = 0.2$ or 0.1 has emerged \cite{Bacchetti2019}. When $n^*_c$ is considered to be infeasibly large, it is common to inflate the target difference $\mu_1$ from the true MCID to a higher value and thus reduce the required sample size to a feasible value \cite{Schulz2005}.
+The chosen sample size $n^*_c$ depends on the target difference $\mu_1$, the nuisance parameter $\sigma$, and the nominal type II error rate $\beta^*$. Although originally intended to be set at a level appropriate to the specific context \cite{Neyman1933}, a convention of arbitrarily setting $\beta^* = 0.2$ or 0.1 has emerged \cite{Bacchetti2019}. When $n^*_c$ is considered to be infeasibly large, it is common to inflate the target difference $\mu_1$ from the true MCID to a higher value and thus reduce the required sample size to a feasible value - the so-called ``sample soze samba'' \cite{Schulz2005}.
 
-When $\mu_1$ and $\beta^*$ are fixed, the sample size is a function of the nuisance parameter only. In practice, $\sigma$ will never be known and an estimate, $\hat{\sigma}$, must be used in its place. When there is some uncertainty in this estimate, it has been recommended that it be inflated to guard against choosing a sample size which is too low (in the sense of leading to a power less than the nominal level). For example, when the estimate $\hat{\sigma}$ has a confidence interval around it, the upper end of that interval may be used instead \cite{Browne1995, Teare2014}. This approach is justified as being `conservative' in the sense that it will likely lead to a trial with power greater than the nominal rate, since $n^*_c$ is strictly increasing in $\hat{\sigma}$. 
+When $\mu_1$ and $\beta^*$ are fixed, the sample size is a function of the nuisance parameter only. In practice, $\sigma$ will never be known and an estimate, $\hat{\sigma}$, must be used in its place. When there is some uncertainty in this estimate, it has been recommended that it be inflated to guard against choosing a sample size which is too low (in the sense of leading to a power less than the nominal level). For example, when the estimate $\hat{\sigma}$ has an associated confidence interval, the upper end of that interval may be used instead \cite{Browne1995, Teare2014}. This approach is justified as being `conservative' in the sense that it will likely lead to a trial with power greater than the nominal rate, since $n^*_c$ is strictly increasing in $\hat{\sigma}$. 
 
 \subsection{Value-based design}
 
-An alternative approach to SSD is to describe our preferences regarding sample size and type II error rates with a \emph{value} function $v(n, \beta): \mathbb{N} \times [0,1] \rightarrow \mathbb{R}$. Specifically, $v$ is such that
+An alternative approach to SSD is to describe our preferences with a \emph{value} function, in the sense that one scenario is preferred to another if and only if that value function of that scenario is larger than the other. For our problem, a scenario is characterised by two attributes: the sample size of the trial, $n$, and the nuisance parameter, $\sigma$. Thus, we would like to define a function $v(n, \sigma): \mathbb{N} \times \mathbb{R}^+ \rightarrow \mathbb{R}$ such that
 $$
-(n, \beta) \text{ is preferred to }(n', \beta') \Leftrightarrow v(n, \beta) > v(n', \beta').
+(n, \sigma) \text{ is preferred to }(n', \sigma') \Leftrightarrow v(n, \sigma) > v(n', \sigma').
 $$
-That such a function exists follows from some decision-theoretic axioms \cite{French2000}. Given this value function, we then find
+That such a function exists follows from some decision-theoretic axioms \cite{French2000}. We will consider the following two specific value function:
 $$
-n^*_v (\mu_1, \sigma, \beta^*) = {\arg\min}_{n \in \mathbb{N}}~ v(n, \beta(n, \mu_1, \sigma)).
+\begin{aligned}
+v_1(n, \sigma) & = \underbrace{1 - \Phi\left(z_{1 - \alpha} - \frac{\delta_a}{\sqrt{2\sigma^2/n}}\right)}_\textrm{Power} - \lambda_1 n - c_1 \\
+v_2(n, \sigma) & = \underbrace{\sqrt{\frac{n}{2\sigma^2}}}_\textrm{Precision} - \lambda_2 n - c_2.
+\end{aligned}
 $$
+These functions share a similar structure, each comprising a term denoting the benefit of the trial (its power n $v_1$, and its precision in $v_2$) which is offset in a linear manner by the cost of sampling and by a fixed set-up cost ($\lambda_i n$ and $c_i$ respectively, for $i = 1, 2$). Thus, each value function implies a constant trade-off between cost and benefit, but the way benefit is quantified differs.
 
-We propose that a value function will have the following attributes. Firstly, value will 
-
-Regarding the specific functional form, we can assume that for any fixed $\beta$, $v_(n, \beta)$ as a function of $n$ and of $\beta$ will be strictly decreasing. We further assume that it will also be linear in each of these terms. That is, we assume the cost of increasing the sample size by some amount $\Delta$ is independent of the starting point $(n, \beta)$, and similarly for $\beta$. The value function will then be of the form
-$$
-v(n, \beta) = (1 - \beta) - \lambda n.
-$$
-We can now define the optimal sample size as
-\begin{equation}
-n^*_v (\mu_1, \hat{\sigma}, \lambda) = {\arg\min}_{n \in \mathbb{N}} ~ (1 - \beta(n, \mu_1, \hat{\sigma})) - \lambda n.
-\end{equation}
-This optimal sample size now depends on the parameter $\lambda$ in addition to the MCID $\mu_1$ and estimated nuisance parameter $\hat{\sigma}$. A convenient way to determine $\lambda$ is to plot power as a function of sample size, for some hypothetical $\hat{\sigma}$, and determine the point which best balances the two factors. The gradient of the power curve at this point is equal to $\lambda$. This is illustrated in Figure \ref{fig:p_curves}, where we plot power curves for a two-sample $t$-test and two values of the nuisance parameter, the outcome standard deviation. 
+Some value functions are illustrated in Figure \ref{fig:p1}. The left-hand column shows the contour plots of function $v_1$ for $lambda_1 = $ (top) and $\lambda_2 = $ (bottom) in the sample size by power space. Superimposed over the contours are two power functions, corresponding to standard deviations of $\sigma = 1$ and 1.3. The optimal value-maximising sample size, assuming $\sigma$ is known, is highlighted in each case. The contour which corresponds to a value of 0 is also highlighted. Note that in the bottom left plot the power function for $\sigma = 1.3$ lies completely below this contour, and so the optimal sample size is 0 in this case. Similar plots for the function $v_2$, now in the sample size by precision place, are given for $lambda_2 = $ (top and bottom, respectively).
 
 \begin{figure}
 \centering
-\includegraphics[scale=0.8]{./figures/p_curves}
+\includegraphics[scale=0.7]{./figures/p1}
 \caption{Power curves for a two-sample $t$-test, for two values of the standard deviation of the outcome. The dotted lines indicate the rate at which power and sample size can be traded off with each other. The points where they are tangential to the power curves are the optimal value-based sample sizes.}
-\label{fig:p_curves}
+\label{fig:p1}
 \end{figure}
 
-\subsection{Eliciting $\lambda$}
+\subsection{Eliciting value function parameters}
 
-We design the trial as normal using some fixed nuisance parameter, and allowing a samba, then read of the gradient at the corresponding point. It would be interesting to know how optimal designs vary as we vary the MCID we have in mind. So, graph lambda against a range of standardised effect sizes, when constraining to 80 or 90\% power.
+Conditional on the assumed structure of the value function, the parameters $\lambda_1$ and $c_2$ (respectively $\lambda_2, c_2$) can be determined by plotting a hypothetical power (precision) function over $n$ and selecting (i) the most preferred sample size, and (ii) the lowest sample size such that the trial would be worth conducting. The gradient of the power (precision) function at the former point gives $\lambda_i$. The intercept of the straight line drawn through the second point, with gradient $\lambda_i$, gives $c_i$.
 
-\subsection{Uncertain $\sigma$}
+\subsection{Uncertain nuisance parameters}
 
-- As well as fixed design, also introduce an SSR approach
+If $\sigma$ is known then the sample size can be chosen so as to maximise the value function. When $\sigma$ is unknown we instead propose to choose the sample size based on \emph{regret}, we difference in value between the proposed $n$ and the optimal $n$ at a some $\sigma$:
+$$
+r(n, \sigma) = v(n^*_v(\sigma)) - v(n, \sigma).
+$$ 
+Specifically, we choose the sample size which minimises the worst-case regret over a given interval $\hat{\Sigma} = [\hat{\sigma}^-, \hat{\sigma}^+]$. Formally, 
+$$
+n^*_{mm} = {\arg\min}_{n \in \mathbb{N}} \left[ \max_{\sigma \in \hat{\Sigma}} r(n, \sigma) \right].
+$$
 
-Unlike the constrained method, $n^*_v$ is no longer monotonic increasing in $\hat{\sigma}$. When faced with uncertainty in $\sigma$, it is therefore no longer viable to simply inflate the estimate  $\hat{\sigma}$ on conservative ground. Denote a fixed design sample size by $n_f$. The optimal value-based sample size is a function of the nuisance parameter, denoted $n^*_v(\sigma)$. Then, for any $\sigma$, we can calculate the difference in value between the fixed and optimal designs:
-$$
-\delta(\sigma | n_f) = v[n^*_v(\sigma)] - v(n_f).
-$$
-We can choose a fixed design by maximising the area of nuisance parameter space $\Sigma$ over which the discrepancy $\delta(\sigma | n_f)$ is within some tolerable amount, $\delta^*$. That is, we solve
-$$
-n^*_f (\mu_1, \Sigma, \delta^*) = \arg\max_{n \in \mathbb{N}} \int_{\Sigma} I[\delta(\sigma | n) \leq \delta^*] d\sigma.
-$$
-We can use a Monte Carlo approximation, generating a set of nuisance parameter samples $\sigma^{(i)}, i = 1, \ldots , N$ from the uniform distribution over $\Sigma$. This then gives
-\begin{equation}\label{eqn:fix}
-n^*_f (\mu_1, \Sigma, \delta^*) = \arg\max_{n \in \mathbb{N}} \sum_{i=1}^N I[\delta(\sigma^{(i)} | n) \leq \delta^*].
-\end{equation}
+For example, consider the case where we have a point estimate of $\hat{\sigma} = 1$ and an interval estimate of $\hat{\Sigma} = [0.80, 1.34]$ . Figure \ref{fig:p2} plots the value of the optimal sample size over $\sigma$ for each of the four scenarios described in Table \ref{tab:}. This is contrasted with the value function of the minimax regret sample size $n_{mm}^*$. 
+
+\begin{figure}
+\centering
+\includegraphics[scale=0.7]{./figures/p2}
+\caption{Caption.}
+\label{fig:p2}
+\end{figure}
+
+\begin{figure}
+\centering
+\includegraphics[scale=0.7]{./figures/p4}
+\caption{Caption.}
+\label{fig:p4}
+\end{figure}
+
+\section{Evaluation}\label{sec:evaluation}
+
+\begin{figure}
+\centering
+\includegraphics[scale=0.7]{./figures/p3}
+\caption{Caption.}
+\label{fig:p3}
+\end{figure}
 
 \section{Application to the examples}\label{sec:illustration}
 

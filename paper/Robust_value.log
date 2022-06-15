@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.19 (MiKTeX 2.9.6840 64-bit) (preloaded format=pdflatex 2021.7.13)  13 JUL 2021 10:58
+This is pdfTeX, Version 3.14159265-2.6-1.40.19 (MiKTeX 2.9.6840 64-bit) (preloaded format=pdflatex 2021.7.13)  15 JUN 2022 11:30
 entering extended mode
 **./Robust_value.tex
 (Robust_value.tex
@@ -464,96 +464,127 @@ LaTeX Font Warning: Font shape `OT1/cmss/m/it' in size <7> not available
  [1
 
 {C:/Users/meddwilb/AppData/Local/MiKTeX/2.9/pdftex/config/pdftex.map}]
+
+LaTeX Warning: Reference `sec:evaluation' on page 2 undefined on input line 70.
+
+
+
+Overfull \vbox (3.59631pt too high) has occurred while \output is active []
+
 LaTeX Font Warning: Font shape `OT1/cmss/m/it' in size <10> not available
 (Font)              Font shape `OT1/cmss/m/sl' tried instead on input line 71.
- [2]
+
+[2]
 LaTeX Font Warning: Font shape `OT1/cmss/m/it' in size <12> not available
-(Font)              Font shape `OT1/cmss/m/sl' tried instead on input line 72.
+(Font)              Font shape `OT1/cmss/m/sl' tried instead on input line 76.
 
 
 Package natbib Warning: Citation `Neyman1933' on page 3 undefined on input line
- 78.
+ 82.
 
 [3]
-<./figures/p_curves.pdf, id=28, 426.59375pt x 284.06125pt>
-File: ./figures/p_curves.pdf Graphic file (type pdf)
-<use ./figures/p_curves.pdf>
-Package pdftex.def Info: ./figures/p_curves.pdf  used on input line 107.
-(pdftex.def)             Requested size: 341.27545pt x 227.24928pt.
- [4 <./figures/p_curves.pdf>]
+<./figures/p1.pdf, id=29, 511.9125pt x 341.275pt>
+File: ./figures/p1.pdf Graphic file (type pdf)
+<use ./figures/p1.pdf>
+Package pdftex.def Info: ./figures/p1.pdf  used on input line 105.
+(pdftex.def)             Requested size: 358.3363pt x 238.89085pt.
 
-LaTeX Warning: Reference `sec:ex_cRCT' on page 5 undefined on input line 137.
 
-<./figures/opt_t_test.pdf, id=40, 426.59375pt x 284.06125pt>
+LaTeX Warning: Reference `tab:' on page 4 undefined on input line 125.
+
+[4]
+<./figures/p2.pdf, id=34, 511.9125pt x 341.275pt>
+File: ./figures/p2.pdf Graphic file (type pdf)
+<use ./figures/p2.pdf>
+Package pdftex.def Info: ./figures/p2.pdf  used on input line 129.
+(pdftex.def)             Requested size: 358.3363pt x 238.89085pt.
+<./figures/p4.pdf, id=35, 511.9125pt x 341.275pt>
+File: ./figures/p4.pdf Graphic file (type pdf)
+<use ./figures/p4.pdf>
+Package pdftex.def Info: ./figures/p4.pdf  used on input line 136.
+(pdftex.def)             Requested size: 358.3363pt x 238.89085pt.
+<./figures/p3.pdf, id=36, 511.9125pt x 341.275pt>
+File: ./figures/p3.pdf Graphic file (type pdf)
+<use ./figures/p3.pdf>
+Package pdftex.def Info: ./figures/p3.pdf  used on input line 145.
+(pdftex.def)             Requested size: 358.3363pt x 238.89085pt.
+
+
+LaTeX Warning: Reference `sec:ex_cRCT' on page 5 undefined on input line 154.
+
+
+LaTeX Warning: Reference `fig:p_curves' on page 5 undefined on input line 154.
+
+[5 <./figures/p1.pdf>]
+<./figures/opt_t_test.pdf, id=51, 426.59375pt x 284.06125pt>
 File: ./figures/opt_t_test.pdf Graphic file (type pdf)
 <use ./figures/opt_t_test.pdf>
-Package pdftex.def Info: ./figures/opt_t_test.pdf  used on input line 143.
+Package pdftex.def Info: ./figures/opt_t_test.pdf  used on input line 160.
 (pdftex.def)             Requested size: 341.27545pt x 227.24928pt.
-[5]
-<./figures/dists_t_test.pdf, id=48, 426.59375pt x 284.06125pt>
+<./figures/dists_t_test.pdf, id=52, 426.59375pt x 284.06125pt>
 File: ./figures/dists_t_test.pdf Graphic file (type pdf)
 <use ./figures/dists_t_test.pdf>
-Package pdftex.def Info: ./figures/dists_t_test.pdf  used on input line 158.
+Package pdftex.def Info: ./figures/dists_t_test.pdf  used on input line 175.
 (pdftex.def)             Requested size: 341.27545pt x 227.24928pt.
-<./figures/fixed_t_test.pdf, id=49, 426.59375pt x 284.06125pt>
+
+
+LaTeX Warning: Reference `eqn:fix' on page 6 undefined on input line 181.
+
+[6 <./figures/p2.pdf>]
+<./figures/fixed_t_test.pdf, id=63, 426.59375pt x 284.06125pt>
 File: ./figures/fixed_t_test.pdf Graphic file (type pdf)
 <use ./figures/fixed_t_test.pdf>
-Package pdftex.def Info: ./figures/fixed_t_test.pdf  used on input line 168.
+Package pdftex.def Info: ./figures/fixed_t_test.pdf  used on input line 185.
 (pdftex.def)             Requested size: 341.27545pt x 227.24928pt.
-<./figures/opt_sw_k.pdf, id=50, 426.59375pt x 426.59375pt>
+<./figures/opt_sw_k.pdf, id=64, 426.59375pt x 426.59375pt>
 File: ./figures/opt_sw_k.pdf Graphic file (type pdf)
 <use ./figures/opt_sw_k.pdf>
-Package pdftex.def Info: ./figures/opt_sw_k.pdf  used on input line 179.
+Package pdftex.def Info: ./figures/opt_sw_k.pdf  used on input line 196.
 (pdftex.def)             Requested size: 341.27545pt x 341.27545pt.
-<./figures/fixed_sw_k.pdf, id=51, 426.59375pt x 426.59375pt>
+<./figures/fixed_sw_k.pdf, id=65, 426.59375pt x 426.59375pt>
 File: ./figures/fixed_sw_k.pdf Graphic file (type pdf)
 <use ./figures/fixed_sw_k.pdf>
-Package pdftex.def Info: ./figures/fixed_sw_k.pdf  used on input line 186.
+Package pdftex.def Info: ./figures/fixed_sw_k.pdf  used on input line 203.
 (pdftex.def)             Requested size: 341.27545pt x 341.27545pt.
- [6 <./figures/opt_t_test.pdf>] [7 <./figures/dists_t_test.pdf>] [8 <./figures/
-fixed_t_test.pdf>]
+ [7 <./figures/p4.pdf>] [8 <./figures/p3.pdf>] [9 <./figures/opt_t_test.pdf>]
 
-LaTeX Warning: Reference `sec:ex_cRCT' on page 9 undefined on input line 225.
-
-
-LaTeX Warning: Reference `' on page 9 undefined on input line 225.
+LaTeX Warning: Reference `sec:ex_cRCT' on page 10 undefined on input line 242.
 
 
-LaTeX Warning: Reference `' on page 9 undefined on input line 225.
+LaTeX Warning: Reference `' on page 10 undefined on input line 242.
 
-[9 <./figures/opt_sw_k.pdf>]
-<./figures/mult_design.pdf, id=91, 426.59375pt x 284.06125pt>
+
+LaTeX Warning: Reference `' on page 10 undefined on input line 242.
+
+<./figures/mult_design.pdf, id=93, 426.59375pt x 284.06125pt>
 File: ./figures/mult_design.pdf Graphic file (type pdf)
 <use ./figures/mult_design.pdf>
-Package pdftex.def Info: ./figures/mult_design.pdf  used on input line 229.
+Package pdftex.def Info: ./figures/mult_design.pdf  used on input line 246.
 (pdftex.def)             Requested size: 341.27545pt x 227.24928pt.
+[10 <./figures/dists_t_test.pdf>]
 
-Underfull \vbox (badness 10000) has occurred while \output is active []
+LaTeX Warning: Reference `sec:ex_cRCT' on page 11 undefined on input line 263.
 
- [10 <./figures/fixed_sw_k.pdf>]
-
-LaTeX Warning: Reference `sec:ex_cRCT' on page 11 undefined on input line 246.
-
-[11 <./figures/mult_design.pdf>]
-<./figures/minimax_t_test.pdf, id=108, 426.59375pt x 284.06125pt>
+<./figures/minimax_t_test.pdf, id=107, 426.59375pt x 284.06125pt>
 File: ./figures/minimax_t_test.pdf Graphic file (type pdf)
 <use ./figures/minimax_t_test.pdf>
-Package pdftex.def Info: ./figures/minimax_t_test.pdf  used on input line 250.
+Package pdftex.def Info: ./figures/minimax_t_test.pdf  used on input line 267.
 (pdftex.def)             Requested size: 341.27545pt x 227.24928pt.
- [12 <./figures/minimax_t_test.pdf>] [13]
-[14]
+[11 <./figures/fixed_t_test.pdf>] [12 <./figures/opt_sw_k.pdf>] [13 <./figures/
+fixed_sw_k.pdf>] [14 <./figures/mult_design.pdf> <./figures/minimax_t_test.pdf>
+] [15] [16]
 
-Package natbib Warning: Citation `Smaldino2016' on page 15 undefined on input l
-ine 339.
+Package natbib Warning: Citation `Smaldino2016' on page 17 undefined on input l
+ine 356.
 
-[15] (Robust_value.bbl [16]
+[17] (Robust_value.bbl [18]
 Underfull \vbox (badness 10000) has occurred while \output is active []
 
- [17])
+ [19])
 
 Package natbib Warning: There were undefined citations.
 
-[18] (Robust_value.aux)
+[20] (Robust_value.aux)
 LaTeX Font Warning: Size substitutions with differences
 (Font)              up to 0.72pt have occurred.
 LaTeX Font Warning: Some font shapes were not available, defaults substituted.
@@ -566,43 +597,42 @@ LaTeX Warning: There were multiply-defined labels.
 
  ) 
 Here is how much of TeX's memory you used:
- 5859 strings out of 492970
- 87675 string characters out of 3135846
- 165896 words of memory out of 3000000
- 9578 multiletter control sequences out of 15000+200000
+ 5880 strings out of 492970
+ 88038 string characters out of 3135846
+ 166906 words of memory out of 3000000
+ 9596 multiletter control sequences out of 15000+200000
  19350 words of font info for 76 fonts, out of 3000000 for 9000
  1141 hyphenation exceptions out of 8191
- 44i,9n,41p,1144b,436s stack positions out of 5000i,500n,10000p,200000b,50000s
+ 44i,16n,41p,1144b,440s stack positions out of 5000i,500n,10000p,200000b,50000s
 <C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmbx10.pfb><C:/Pr
 ogram Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmbx7.pfb><C:/Program Fil
 es/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmex10.pfb><C:/Program Files/MiKTe
 X 2.9/fonts/type1/public/amsfonts/cm/cmmi10.pfb><C:/Program Files/MiKTeX 2.9/fo
-nts/type1/public/amsfonts/cm/cmmi12.pfb><C:/Program Files/MiKTeX 2.9/fonts/type
-1/public/amsfonts/cm/cmmi5.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/
-amsfonts/cm/cmmi6.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/
-cm/cmmi7.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmmi9.
-pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmr10.pfb><C:/P
-rogram Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmr5.pfb><C:/Program Fil
-es/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmr6.pfb><C:/Program Files/MiKTeX 
-2.9/fonts/type1/public/amsfonts/cm/cmr7.pfb><C:/Program Files/MiKTeX 2.9/fonts/
-type1/public/amsfonts/cm/cmr9.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/publ
-ic/amsfonts/cm/cmss10.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfo
-nts/cm/cmss8.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cm
-ss9.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmssbx10.pf
-b><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmssi10.pfb><C:/P
-rogram Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmssi12.pfb><C:/Program 
-Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmssi8.pfb><C:/Program Files/Mi
-KTeX 2.9/fonts/type1/public/amsfonts/cm/cmsy10.pfb><C:/Program Files/MiKTeX 2.9
-/fonts/type1/public/amsfonts/cm/cmsy7.pfb><C:/Program Files/MiKTeX 2.9/fonts/ty
-pe1/public/amsfonts/cm/cmsy9.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/publi
-c/amsfonts/cm/cmti10.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfon
-ts/cm/cmti7.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmt
-i9.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmtt9.pfb><C
-:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/symbols/msbm10.pfb><C:/P
-rogram Files/MiKTeX 2.9/fonts/type1/public/amsfonts/symbols/msbm7.pfb>
-Output written on Robust_value.pdf (18 pages, 462242 bytes).
+nts/type1/public/amsfonts/cm/cmmi5.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1
+/public/amsfonts/cm/cmmi6.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/a
+msfonts/cm/cmmi7.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/c
+m/cmmi9.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmr10.p
+fb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmr5.pfb><C:/Pro
+gram Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmr6.pfb><C:/Program Files
+/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmr7.pfb><C:/Program Files/MiKTeX 2.
+9/fonts/type1/public/amsfonts/cm/cmr9.pfb><C:/Program Files/MiKTeX 2.9/fonts/ty
+pe1/public/amsfonts/cm/cmss10.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/publ
+ic/amsfonts/cm/cmss8.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfon
+ts/cm/cmss9.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cms
+sbx10.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmssi10.p
+fb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmssi12.pfb><C:/
+Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmssi8.pfb><C:/Program 
+Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmsy10.pfb><C:/Program Files/Mi
+KTeX 2.9/fonts/type1/public/amsfonts/cm/cmsy7.pfb><C:/Program Files/MiKTeX 2.9/
+fonts/type1/public/amsfonts/cm/cmsy9.pfb><C:/Program Files/MiKTeX 2.9/fonts/typ
+e1/public/amsfonts/cm/cmti10.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/publi
+c/amsfonts/cm/cmti7.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfont
+s/cm/cmti9.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmtt
+9.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/symbols/msbm10.p
+fb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/symbols/msbm7.pfb>
+Output written on Robust_value.pdf (20 pages, 556401 bytes).
 PDF statistics:
- 230 PDF objects out of 1000 (max. 8388607)
+ 257 PDF objects out of 1000 (max. 8388607)
  0 named destinations out of 1000 (max. 500000)
- 41 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 56 words of extra memory for PDF output out of 10000 (max. 10000000)
 
