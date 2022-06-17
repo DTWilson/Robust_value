@@ -162,8 +162,8 @@ Consider a two-arm trial with a normal endpoint which will compare the means in 
 We propose two value functions:
 $$
 \begin{align}
-v_1(n; \lambda_1, c_1) & = \underbrace{1 - \Phi\left(z_{1 - \alpha} - \frac{\delta_a}{\sqrt{2\sigma^2/n}}\right)}_\textrm{Power} - \lambda_1 n - c_1 \\
-v_2(n; \lambda_2, c_2) & = \underbrace{\sqrt{\frac{n}{2\sigma^2}}}_\textrm{Precision} - \lambda_2 n - c_2.
+v_1(n, \sigma; \lambda_1, c_1) & = \underbrace{1 - \Phi\left(z_{1 - \alpha} - \frac{\delta_a}{\sqrt{2\sigma^2/n}}\right)}_\textrm{Power} - \lambda_1 n - c_1 \\
+v_2(n, \sigma; \lambda_2, c_2) & = \underbrace{\sqrt{\frac{n}{2\sigma^2}}}_\textrm{Precision} - \lambda_2 n - c_2.
 \end{align}
 $$
 
@@ -215,7 +215,7 @@ for(i in 1:4){
   gr$v <- gr$p - lambda*gr$n - C
   
   plots[[i]] <- ggplot(df, aes(n, p)) + geom_line(aes(colour=as.factor(sig))) +
-    geom_hline(yintercept = 0.8, linetype=2) +
+    #geom_hline(yintercept = 0.8, linetype=2) +
     geom_contour(data = gr, aes(z = v), alpha = 0.5, colour = cols[3]) +
     geom_contour(data = gr, aes(z = v), breaks = c(C), colour = cols[4]) +
     geom_point(data = df[as.numeric(row.names(rbind(opt1, opt2))), ]) +
@@ -231,7 +231,9 @@ for(i in 1:4){
   }
 }
 
-(plots[[1]] + plots[[3]]) /(plots[[2]] + plots[[4]]) + plot_layout(guides = "collect") & theme(legend.position = 'bottom')
+p1 <- (plots[[1]] + plots[[3]]) /(plots[[2]] + plots[[4]]) + plot_layout(guides = "collect") & theme(legend.position = 'bottom')
+p1
+ggsave("./paper/figures/p1.pdf", p1, width = 18, height = 12, units="cm")
 ```
 
 This figure shows the indifference contours in each case. Power (left column) and precision (right column) as a function of $n$ is shown for two possible values of the nuisance parameter $\sigma$ (1 and 1.3) and an MCID of 0.3, and the optimal (value-maximising) sample size is highlighted for each of these specific cases. The pink line denotes the contour below which it becomes optimal to not run the trial at all due to the setup costs.
@@ -296,7 +298,9 @@ for(i in 1:4){
   
   
 
-(plots2[[1]] + plots2[[3]]) /(plots2[[2]] + plots2[[4]]) + plot_layout(guides = "collect") & theme(legend.position = 'bottom')
+p2 <- (plots2[[1]] + plots2[[3]]) /(plots2[[2]] + plots2[[4]]) + plot_layout(guides = "collect") & theme(legend.position = 'bottom')
+p2
+ggsave("./paper/figures/p2.pdf", p2, width = 18, height = 12, units="cm")
 ```
 For all cases, we find that the value of the optimal, simple, and minimax regret ns are pretty similiar over the interval estimate of $\sigma$. This suggests that a fixed design can be very robust to misspecification of $\sigma$ (since moving to the optimal n would not improve value by much), and that the simple fixed design is almost as good a choice as the minimax regret design.
 
@@ -402,7 +406,9 @@ for(i in 1:4){
     theme_minimal()
 }
 
-(plots3[[1]] + plots3[[3]]) /(plots3[[2]] + plots3[[4]]) + plot_layout(guides = "collect") & theme(legend.position = 'bottom')
+p3 <- (plots3[[1]] + plots3[[3]]) /(plots3[[2]] + plots3[[4]]) + plot_layout(guides = "collect") & theme(legend.position = 'bottom')
+p3
+ggsave("./paper/figures/p3.pdf", p3, width = 18, height = 12, units="cm")
 ```
 
 These plots show that if we use power in our value function, there is not a lot of variation in the minimax regret n over possible point and interval estimates. Most of the variation comes from the point estimate, suggesting that a more precise pilot estimate *at the same point* is not of much value. This is shown in starker terms when using precision, where the minimax regret n now depends sharply on the point estimate (increasing as the point estimate decreases) but again is not sensitive to the interval around it.
@@ -412,7 +418,9 @@ These plots show that if we use power in our value function, there is not a lot 
 The final thing to examine is how the maximum regret varies with n for a specific point and interval estimate, so we can show how the minimax regret n compares against the simple fixed n and alternatives, particularly the n chosen using the upper end of the interval. Code is embedded in the above to avoid replication.
 
 ```{r}
-(plots4[[1]] + plots4[[3]]) /(plots4[[2]] + plots4[[4]]) + plot_layout(guides = "collect") & theme(legend.position = 'bottom')
+p4 <- (plots4[[1]] + plots4[[3]]) /(plots4[[2]] + plots4[[4]]) + plot_layout(guides = "collect") & theme(legend.position = 'bottom')
+p4
+ggsave("./paper/figures/p4.pdf", p4, width = 18, height = 12, units="cm")
 ```
 
 We find again that, for this specific point and interval example, the simple fixed n (where we maximise value based on the point estimate) is very close or identical to the minimax regret n and thus has a similar or identical maximum regret. This holds in all scenarios. In comparison, the upper CI n (where we choose the smallest n giving 80% power using the upper CI as the estimate) is always much higher and has a much larger maximum regret.
