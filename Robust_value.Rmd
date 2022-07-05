@@ -252,7 +252,7 @@ Now consider how value varies with the true parameter $\sigma$. We are intereste
 ```{r}
 # First, choose a point estimate and construct a 95% CI around it
 # corresponding to a certain pilot sample size
-sig <- 1; k <- 2*30 - 1
+sig <- 1; k <- 2*30 - 2
 lo <- sqrt(k*sig^2/qchisq(0.975, k)) 
 up <- sqrt(k*sig^2/qchisq(0.025, k)) 
 
@@ -485,22 +485,23 @@ Our approach gives us a principled way to design a trial when there is uncertain
 
 One approach is to change our value function to one focussed on expected effectiveness, rather than on power (or precision). That is, we assume a linear trade-off between sample size and power $\times$ effect. We then proceed as before, but now we have a 2D parameter space to do our minimax regret operations over. We may find that the choice of n is not as robust to movement in this space.
 
-Seems to be a strong rationale for this approach - can clearly argue that the value of power at a fixed point is highly dependant on how likely we think that point is. E.g. very low value for power at unrealistically high points, except where mediated through implied power at realistic points (though this will be tending to 1).
+If we think about effect and power as being two attributes, we are assuming a very specific value structure between these bu including only their interaction. This implies that effect **alone** is worthless - it must be enabled by at least some power. Similarly, power is useless unless we have a positive effect to discover. 
 
 ```{r}
 # Value function based on expected effectiveness
 v3 <- function(n, sig, delta, lambda3, c3){
-  p <- 1-pt(qt(0.975, 2*(n-1)), 2*(n-1), delta/sqrt(2*sig^2/n))
-  delta*p - lambda3*n - c3
+  pow <- 1-pt(qt(0.975, 2*(n-1)), 2*(n-1), delta/sqrt(2*sig^2/n))
+  prob_use <- exp(10*(delta - 0.21))/(1 + exp(10*(delta - 0.21)))
+  delta*pow*prob_use - lambda3*n - c3
 }
 
 # Define space to get value over - corresponds to a specific interval estimates
-sig <- 1; delta <- 0.25;  k <- 60
+sig <- 1; delta <- 0.25;  k <- 2*30 - 2; n_p <- 30
 alpha <- 0.975
 lo <- sqrt(k*sig^2/qchisq(alpha, k)) 
 up <- sqrt(k*sig^2/qchisq(1-alpha, k)) 
 
-deltas <- seq(delta - qnorm(alpha)*1/sqrt(k/2), delta + qnorm(alpha)*1/sqrt(k/2), length.out = 10^2)
+deltas <- seq(delta - qt(alpha, k)*sig/sqrt(n_p/2), delta + qt(alpha, k)*sig/sqrt(n_p/2), length.out = 10^2)
 sigs <- seq(lo, up, length.out = 10^2)
 ns <- 2:300
 
@@ -508,47 +509,71 @@ df <- expand.grid(d = deltas,
                   s = sigs,
                   n = ns)
 
-# Calculate value at each point for one example choice of lambda
-lambda3 <- 0.0004; c3 <- lambda3*n_cost
+# Calculate value at each point for one example choice of lambda,
+# chosen so that the optimal design at the point estimate sigma = 1
+# and mcid delta = 0.3 has 80% power.
+lambda3 <- 0.000475; c3 <- lambda3*n_cost
+#which.max(v3(ns, 1, 0.3, lambda3, c3)) + 1
 df$v  <- v3(df$n, df$s, df$d, lambda3, c3)
 
 # Reshape into params x n format
 df2 <- reshape(df, direction = "wide", idvar = c("d", "s"), timevar = "n", v.names = "v")
 
-# Optimal n at each parameter point [analogous to send plots in 
+# Optimal n at each parameter point [analogous to second plots in 
 # running example]
 df3 <- df2[,1:2]
 df3$v <- apply(df2[,3:ncol(df2)], 1, max)
 
-# Find simple fixed design, i.e. maximising value at the point estimates 
+ggplot(df3, aes(d, s)) + geom_tile(aes(fill = v)) +
+    scale_fill_viridis(discrete=FALSE) +
+    ylab("Standard deviation") + xlab("Effect size") +
+    theme_minimal()
+```
+
+We see here that value is overwhelmingly determined by the true effect size, and not by the true standard deviation. This is not surprising since the former comes in directly and through power in the values function.
+
+Now, find the simple design which takes the point estimates and chooses the n which maximises value at that point.
+
+
+```{r}
+# Get a vector of values over ns
 vs <- delta*(1-pt(qt(0.975, 2*(ns-1)), 2*(ns-1), delta/sqrt(2*sig^2/ns))) - lambda3*ns - c3
 fix_n <- ns[which.max(vs)]
 df4 <- df2[,c(1,2, 1 + which.max(vs))]
 # Print simple n and its power at point estimates
 fix_n
-1-pt(qt(0.975, 2*(fix_n-1)), 2*(fix_n-1), delta/sqrt(2*sig^2/fix_n))
+1-pt(qt(0.975, 2*(fix_n-1)), 2*(fix_n-1), 0.3/sqrt(2*sig^2/fix_n))
+```
 
-# Find the optimal (minimax regret) n
-df5 <- df2 # Contains values for each point and n
-# For all ns, subtract value of best choice to give regrets
+Compare this against the n chosen to minimise the maximum regret over the given interval estimates.
+
+```{r}
+df5 <- df2 # Contains values for each point point in parameter space and each n
+# For all ns, subtract value from that of best choice to give regrets
 df5[,3:ncol(df5)] <- df3$v - df5[,3:ncol(df5)]
-# For all ns, find maximum regret over all points
+# For all ns, find maximum regret over all points. This returns a vector where
+# ech entry corresponds to an n and gives max regret.
 max_reg <- apply(df5[,3:ncol(df5)], 2, max)
-# Find n which minmaxes regret
+# Find n which minimaxes regret
 mm_reg_n <- ns[which.min(max_reg)]
-# Print minimax regret n and its power
+# Print minimax regret n and its power at the point estimate
 mm_reg_n
-1-pt(qt(0.975, 2*(mm_reg_n-1)), 2*(mm_reg_n-1), delta/sqrt(2*sig^2/mm_reg_n))
+1-pt(qt(0.975, 2*(mm_reg_n-1)), 2*(mm_reg_n-1), 0.3/sqrt(2*sig^2/mm_reg_n))
 
 # Plot regret of minimax regret n at each parameter point
 df5$v <- df2[,1 + which.min(max_reg)]
 
-# Plot difference in value i.e. regret
+# Plot regret for this n which minimises max regret
 ggplot(df5, aes(d)) + geom_tile(aes(y = s, fill = df3$v - v)) +
     scale_fill_viridis(discrete=FALSE, name = "Regret") +
     xlab("Effect size") + ylab("Standard deviation") +
     theme_minimal()
+```
+We see that for this minimax regret n, regret is maximised at about 0.05 (in units of expected effectiveness) and this generally happens when we have a low effect size.
 
+Now we can plot the maximum regret as a function of n, and point out where the alternative points (the simple choice) can be highlighted. Note that we don't use the upper CI approach here - would need to think about how this would actually be used in practice but since we generally know that powering off an estimated effect size is a bad idea, might be a straw man.
+
+```{r}
 df6 <- data.frame(n = ns,
                   r = max_reg)
 
@@ -561,19 +586,24 @@ ggplot(df6, aes(n, r)) + geom_line() +
   scale_colour_manual(name = "", values = cols[c(1,3)]) +
   ylab("Maxmimum regret") +
   theme_minimal()
+
+df7
 ```
+In this case, the simple value-maximising choice gives us a maximum regret about twice the size of the optimal n.
 
 Big difference here is that the simple fixed n (the one maximising value at the point estimates) is now quite larger than the minimax regret n. Since the value function parameters were chosen to give the former a power of 0.8, this means we have a minimax regret n which gives a power at that point of only 0.5. So we choose to have worse local value at the point, to get improved worst-case performance over the interval. If it seems undesirable, we could change our interval to make it smaller.
 
+Returning to the basic premise, we have set up a value function which is linear the the true treatment effect if power is constant. The potential problem is that this ignores the importance aspect of the effect - the rationale behind using an MCID as a point which would actually change practice. We have addressed this by including in our value function a probability of uptake, which we have taken as a known function of the true effect. We have chosen to centre this at $\delta = 0.21$, so that there is a 0.5 chance of uptake at this value. This corresponds to the point at which the optimal design at the point estimate of $\sigma = 1$ (n = 176) has 50% power.
+
+This introduces a new problem - now we have some unknown adoption function which we need to hypothesise, so to follow through with the general motivation we should think about a space of these and do maximin regret, since it is an unknown and not a value judgement. So perhaps not a helpful extension - focus instead on the binary RCT example to show how things extend to a 2d parameter space? Or work through the details of parameterising this uptake function and maximin regret over that too - but probably too much for one manuscript.
 # Superceded
 
 ## Binary cRCT
 
-If we have the effectiveness measure above, we have already looked at a 2D parameter space. So do we need this example? Or is it enough to put in the discussion that it's easy to apply to other cases, e.g. using a power metric in a binary setting with control rate in place of the sd? Could potentially include this (and others?) in an appendix. Or go in the other direction and make it explicitly limited to our continuous case, but then make the most of this by developing an R package which implements the above methods and thus helps with uptake? 
 
 Rutterford2015
 
-To illustrate the genral approach being applied to a different and more complex problem, consider a cRCT with a binary outcome. Power is then a function of the control group rate and the between cluster variance / the ICC.
+To illustrate the general approach being applied to a different and more complex problem, consider a cRCT with a binary outcome. We will use the power value function and consider a specific scenario characterised by point and interval estimates for the two nuisance parameters and specific value function parameters. Then go straight to calculating the max regret for a range of n, and highlight the simple and the upper CI choices here too. Do the rest, but keep for the SM?
 
 
 ```{r}
