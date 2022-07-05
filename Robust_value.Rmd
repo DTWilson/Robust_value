@@ -175,10 +175,16 @@ To illustrate these value functions, we plot contours and overlay these with spe
 v1 <- function(n, sig, lambda1, c1) {
   delta_a <- 0.3
   1-pt(qt(0.975, 2*(n-1)), 2*(n-1), 0.3/sqrt(2*sig^2/n)) - lambda1*n - c1
+  
+  # May be useful to put value into units of sample size
+  #(1-pt(qt(0.975, 2*(n-1)), 2*(n-1), 0.3/sqrt(2*sig^2/n)))/lambda1 - n - c1/lambda1
 }
 
 v2 <- function(n, sig, lambda2, c2) {
   sqrt(n/(2*sig^2)) - lambda2*n - c2
+  
+  # May be useful to put value into units of sample size
+  #sqrt(n/(2*sig^2))/lambda2 - n - c2/lambda2
 }
 
 # Define some example trade-offs
@@ -246,7 +252,7 @@ Now consider how value varies with the true parameter $\sigma$. We are intereste
 ```{r}
 # First, choose a point estimate and construct a 95% CI around it
 # corresponding to a certain pilot sample size
-sig <- 1; k <- 30
+sig <- 1; k <- 2*30 - 1
 lo <- sqrt(k*sig^2/qchisq(0.975, k)) 
 up <- sqrt(k*sig^2/qchisq(0.025, k)) 
 
@@ -255,7 +261,7 @@ for(i in 1:4){
   lambda <- c(lambda1, lambda2)[i]
   C <- c(c1, c2)[i]
   
-  df <- expand.grid(sig = seq(0.5, 2, 0.1),
+  df <- expand.grid(sig = seq(0.6, 1.5, 0.1),
                     n = 2:500)
   if(i < 3){
     df$v <- v1(n = df$n, sig = df$sig, lambda1 = lambda, c1 = C)
@@ -289,6 +295,8 @@ for(i in 1:4){
                     v = c(v_opt, v_mm, v_s),
                     t = c(rep(c("Optimal", "Minimax", "Simple"), each = length(df_wide$sig))))
   
+
+  
   plots2[[i]] <- ggplot(df3, aes(sig, v, colour = t)) + geom_line() +
     scale_colour_manual(name = "", values = cols) +
     geom_vline(xintercept = c(lo, up), linetype = 2) +
@@ -307,13 +315,15 @@ For all cases, we find that the value of the optimal, simple, and minimax regret
 This was for a specific choice of point and interval estimate of $\sigma$. We would like to see what happens when these vary - in particular, does the minimax regret n vary with them? We do this by making a grid of point estimates and degrees of freedom, and plotting the resulting minimax regret n.
 
 ```{r}
-df <- expand.grid(sig = seq(0.3, 2, l = 50),
-                  k = seq(10, 100, l = 50))
+df <- expand.grid(sig = seq(0.6, 1.5, 0.02), # length = 46
+                  k = seq(10, 100, 2))       # length = 46
 df$lo <- sqrt(df$k*df$sig^2/qchisq(0.975, df$k)) 
 df$up <- sqrt(df$k*df$sig^2/qchisq(0.025, df$k)) 
 df$n <- df$n_ci <- df$n_nct <- NA
 
 plots3 <- vector("list", 4)
+plots3a <- vector("list", 4)
+plots3b <- vector("list", 4)
 plots4 <- vector("list", 4)
 for(i in 1:4){
   lambda <- c(lambda1, lambda2)[i]
@@ -333,6 +343,10 @@ for(i in 1:4){
       }
     }
   }
+  
+  # Find index of scenario with point estimate 1 and degrees of freedom of 30:
+  scn_ind <- which(df$sig == 1 & df$k == 58)
+    
   
   # For each scenario (point and interval estimate), find the minimax 
   # regret n along with simple fixed and upper CI ns
@@ -370,6 +384,9 @@ for(i in 1:4){
     }
     df$r_ci[j] <- max(regs[which(ns == df$n_ci[j]),])
 
+    # Find the difference in maximum regret of the two methods, and translate
+    # this into units of sample size.
+    df$r_dif <- (df$r_ci - df$r)/lambda
         
     # Use the non-central t method of Julious
     #ns2 <- 3:1000
@@ -381,22 +398,44 @@ for(i in 1:4){
     #df$n_nct[j] <- ns2[ns2 >= z][1]
     
 
-    if(j == 571) {
+    if(j == scn_ind) {
       df2 <- data.frame(n = ns)
       df2$r <- max_regs
     }
   }
+  print(range(df$n))
+  print(range(df$n_ci - df$n))
+  print(range(df$r_dif))
   
+  # Minimax regret sample size
   plots3[[i]] <- ggplot(df, aes(k)) + geom_tile(aes(y = sig, fill = n)) +
     scale_fill_viridis(discrete=FALSE, limits = c(0,500)) + 
-      geom_line(data = df[df$sig == 1,], aes(y = up)) +
-      geom_line(data = df[df$sig == 1,], aes(y = lo)) +
-      ylim(c(0.3, 2)) +
+      #geom_line(data = df[df$sig == 1,], aes(y = up)) +
+      #geom_line(data = df[df$sig == 1,], aes(y = lo)) +
+      ylim(c(0.6, 1.5)) +
     ylab("Point estimate SD") + xlab("Degrees of freedom") +
     theme_minimal()
   
-  df3 <- data.frame(n = c(df$n[571], df$n_fix[571], df$n_ci[571]),
-                    r = c(df$r[571], df$r_fix[571], df$r_ci[571]),
+  # Difference in minimax and constrained n
+  plots3a[[i]] <- ggplot(df, aes(k)) + geom_tile(aes(y = sig, fill = n_ci - n)) +
+    scale_fill_viridis(discrete=FALSE, limits = c(-400,500)) + 
+      #geom_line(data = df[df$sig == 1,], aes(y = up)) +
+      #geom_line(data = df[df$sig == 1,], aes(y = lo)) +
+      ylim(c(0.6, 1.5)) +
+    ylab("Point estimate SD") + xlab("Degrees of freedom") +
+    theme_minimal()
+    
+  # Difference in minimax and constrained regret, in units of sample size
+  plots3b[[i]] <- ggplot(df, aes(k)) + geom_tile(aes(y = sig, fill = r_dif)) +
+    scale_fill_viridis(discrete=FALSE, limits = c(0,400)) + 
+      #geom_line(data = df[df$sig == 1,], aes(y = up)) +
+      #geom_line(data = df[df$sig == 1,], aes(y = lo)) +
+      ylim(c(0.6, 1.5)) +
+    ylab("Point estimate SD") + xlab("Degrees of freedom") +
+    theme_minimal()
+  
+  df3 <- data.frame(n = c(df$n[scn_ind], df$n_fix[scn_ind], df$n_ci[scn_ind]),
+                    r = c(df$r[scn_ind], df$r_fix[scn_ind], df$r_ci[scn_ind]),
                     t = c("Minimax", "Simple", "Upper CI"))
   
   plots4[[i]] <- ggplot(df2, aes(n, r)) + geom_line() +
@@ -406,14 +445,13 @@ for(i in 1:4){
     theme_minimal()
 }
 
+# Minimax regret sample size
 p3 <- (plots3[[1]] + plots3[[3]]) /(plots3[[2]] + plots3[[4]]) + plot_layout(guides = "collect") & theme(legend.position = 'bottom')
 p3
 ggsave("./paper/figures/p3.pdf", p3, width = 18, height = 12, units="cm")
 ```
 
-These plots show that if we use power in our value function, there is not a lot of variation in the minimax regret n over possible point and interval estimates. Most of the variation comes from the point estimate, suggesting that a more precise pilot estimate *at the same point* is not of much value. This is shown in starker terms when using precision, where the minimax regret n now depends sharply on the point estimate (increasing as the point estimate decreases) but again is not sensitive to the interval around it.
-
-[To do - repeat above getting the constrained n and / or the upper CI n, and plot the differences, so we can show the practical implications. All might be better in SM / appendix]
+These plots show that if we use power in our value function, there is not a lot of variation in the minimax regret n over possible point and interval estimates. Most of the variation comes from the point estimate, suggesting that a more precise pilot estimate *at the same point* will not change our choice of $n$ considerably. This is shown in starker terms when using precision, where the minimax regret n now depends sharply on the point estimate (increasing as the point estimate decreases) but again is not sensitive to the interval around it.
 
 The final thing to examine is how the maximum regret varies with n for a specific point and interval estimate, so we can show how the minimax regret n compares against the simple fixed n and alternatives, particularly the n chosen using the upper end of the interval. Code is embedded in the above to avoid replication.
 
@@ -423,12 +461,23 @@ p4
 ggsave("./paper/figures/p4.pdf", p4, width = 18, height = 12, units="cm")
 ```
 
-We find again that, for this specific point and interval example, the simple fixed n (where we maximise value based on the point estimate) is very close or identical to the minimax regret n and thus has a similar or identical maximum regret. This holds in all scenarios. In comparison, the upper CI n (where we choose the smallest n giving 80% power using the upper CI as the estimate) is always much higher and has a much larger maximum regret.
+We find again that, for this specific point and interval example (where $\hat{\sigma} = 1$ and $k = 58$), the simple fixed n (where we maximise value based on the point estimate) is very close or identical to the minimax regret n and thus has a similar or identical maximum regret. This holds in all scenarios. In comparison, the upper CI n (where we choose the smallest n giving 80% power using the upper 95\% CI as the estimate) is always much higher and has a much larger maximum regret.
 
+Also embedded in the above code are plots comparing the minimax approach and the upper CI approach. First we plot the difference in the recommended sample sizes, and then look at the difference in maximum regret attained at these sample sizes (in units of sample size).
 
-It might be useful to give a table of (minimax regret) optimal sample sizes for a range of scenarios. One approach is to determine value function parameters such that the (value) optimal sample size is typical in some way. For example, we could find a value function corresponding to choosing 80% power to detect a standardised effect size of 0.3. But this is tricky now since we've added a setup cost, so no unique solution. Better to just provide the software to find the n for any given scenario.
+```{r}
+# Difference in minimax and constrained n
+p3a <- (plots3a[[1]] + plots3a[[3]]) /(plots3a[[2]] + plots3a[[4]]) + plot_layout(guides = "collect") & theme(legend.position = 'bottom')
+p3a
 
+# Difference in minimax and constrained regret, in units of sample size
+p3b <- (plots3b[[1]] + plots3b[[3]]) /(plots3b[[2]] + plots3b[[4]]) + plot_layout(guides = "collect") & theme(legend.position = 'bottom')
+p3b
+```
 
+These plots show firstly that the upper CI method always gives a higher n than the power-value approach, but can give a lower n than the precision-value approach. The differences can be very large, over the scenarios we have considered. Obviously the value-based methods always have lower maximum regret, but there are regions of the scenario space where the difference is small (particularly when the point estimate is small, meaning that the upper CI does not overinflate the sample size by too much).
+
+[It might be useful to give a table of (minimax regret) optimal sample sizes for a range of scenarios. One approach is to determine value function parameters such that the (value) optimal sample size is typical in some way. For example, we could find a value function corresponding to choosing 80% power to detect a standardised effect size of 0.3. But this is tricky now since we've added a setup cost, so no unique solution. Better to just provide the software to find the n for any given scenario.]
 
 ## Uncertain effect size
 
