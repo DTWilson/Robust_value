@@ -491,12 +491,12 @@ If we think about effect and power as being two attributes, we are assuming a ve
 # Value function based on expected effectiveness
 v3 <- function(n, sig, delta, lambda3, c3){
   pow <- 1-pt(qt(0.975, 2*(n-1)), 2*(n-1), delta/sqrt(2*sig^2/n))
-  prob_use <- exp(10*(delta - 0.21))/(1 + exp(10*(delta - 0.21)))
+  prob_use <- 1 # exp(10*(delta - 0.21))/(1 + exp(10*(delta - 0.21)))
   delta*pow*prob_use - lambda3*n - c3
 }
 
 # Define space to get value over - corresponds to a specific interval estimates
-sig <- 1; delta <- 0.25;  k <- 2*30 - 2; n_p <- 30
+sig <- 1; delta <- 0.3;  k <- 2*30 - 2; n_p <- 30
 alpha <- 0.975
 lo <- sqrt(k*sig^2/qchisq(alpha, k)) 
 up <- sqrt(k*sig^2/qchisq(1-alpha, k)) 
@@ -512,7 +512,8 @@ df <- expand.grid(d = deltas,
 # Calculate value at each point for one example choice of lambda,
 # chosen so that the optimal design at the point estimate sigma = 1
 # and mcid delta = 0.3 has 80% power.
-lambda3 <- 0.000475; c3 <- lambda3*n_cost
+#lambda3 <- 0.00067; c3 <- lambda3*n_cost
+lambda3 <- 0.000365; c3 <- lambda3*n_cost
 #which.max(v3(ns, 1, 0.3, lambda3, c3)) + 1
 df$v  <- v3(df$n, df$s, df$d, lambda3, c3)
 
@@ -569,7 +570,7 @@ ggplot(df5, aes(d)) + geom_tile(aes(y = s, fill = df3$v - v)) +
     xlab("Effect size") + ylab("Standard deviation") +
     theme_minimal()
 ```
-We see that for this minimax regret n, regret is maximised at about 0.05 (in units of expected effectiveness) and this generally happens when we have a low effect size.
+We see that for this minimax regret n, regret is maximised at about 0.05 (in units of expected effectiveness) and this generally happens when we have a low effect size (when n will be too large), but also for a medium effect and a high sd (when n will be too small).
 
 Now we can plot the maximum regret as a function of n, and point out where the alternative points (the simple choice) can be highlighted. Note that we don't use the upper CI approach here - would need to think about how this would actually be used in practice but since we generally know that powering off an estimated effect size is a bad idea, might be a straw man.
 
@@ -589,13 +590,14 @@ ggplot(df6, aes(n, r)) + geom_line() +
 
 df7
 ```
-In this case, the simple value-maximising choice gives us a maximum regret about twice the size of the optimal n.
 
-Big difference here is that the simple fixed n (the one maximising value at the point estimates) is now quite larger than the minimax regret n. Since the value function parameters were chosen to give the former a power of 0.8, this means we have a minimax regret n which gives a power at that point of only 0.5. So we choose to have worse local value at the point, to get improved worst-case performance over the interval. If it seems undesirable, we could change our interval to make it smaller.
+In this case, the simple value-maximising choice gives us a maximum regret almost twice the size of the optimal n.
 
-Returning to the basic premise, we have set up a value function which is linear the the true treatment effect if power is constant. The potential problem is that this ignores the importance aspect of the effect - the rationale behind using an MCID as a point which would actually change practice. We have addressed this by including in our value function a probability of uptake, which we have taken as a known function of the true effect. We have chosen to centre this at $\delta = 0.21$, so that there is a 0.5 chance of uptake at this value. This corresponds to the point at which the optimal design at the point estimate of $\sigma = 1$ (n = 176) has 50% power.
+Big difference here is that the simple fixed n (the one maximising value at the point estimates) is now quite larger than the minimax regret n. Since the value function parameters were chosen to give the former a power of 0.9, this means we have a minimax regret n which gives a power at that point of only 0.68. So, we choose to have worse local value at the point estimate, to get improved worst-case performance over the interval estimate. If it seems undesirable, we could change our interval to make it smaller.
 
-This introduces a new problem - now we have some unknown adoption function which we need to hypothesise, so to follow through with the general motivation we should think about a space of these and do maximin regret, since it is an unknown and not a value judgement. So perhaps not a helpful extension - focus instead on the binary RCT example to show how things extend to a 2d parameter space? Or work through the details of parameterising this uptake function and maximin regret over that too - but probably too much for one manuscript.
+Returning to the basic premise, we have set up a value function which is linear the the true treatment effect if power is constant. The potential problem is that this ignores the importance aspect of the effect to patients / clinicians - the rationale behind using an MCID as a point which would actually change practice. We have explored this by including in our value function a probability of uptake, which we have taken as a known function of the true effect. We have chosen to centre this at $\delta = 0.21$, so that there is a 0.5 chance of uptake at this value. This corresponds to the point at which the optimal design at the point estimate of $\sigma = 1$ (n = 176) has 50% power. This introduces a new problem - now we have some unknown adoption function which we need to hypothesise, so to follow through with the general motivation we should think about a space of these and do maximin regret, since it is an unknown and not a value judgement. So perhaps not a helpful extension? Or work through the details of parametrising this uptake function and maximin regret over that too - but probably too much for one manuscript?
+
+
 # Superceded
 
 ## Binary cRCT
