@@ -24,7 +24,7 @@ cols <- brewer.pal(8, "Dark2")
 ```
 
 
-## Non-lienar power value
+## Non-linear power value
 
 Assuming a linear single attribute n, and assuming that the rate of substitution depends on $\beta$ but not on $n$ (so, the amount of $n$ we will pay to improve $\beta$ does not depend on $n$), a single attribute value function for $\beta$ will complete our specification.
 
@@ -310,7 +310,7 @@ p2 <- (plots2[[1]] + plots2[[3]]) /(plots2[[2]] + plots2[[4]]) + plot_layout(gui
 p2
 ggsave("./paper/figures/p2.pdf", p2, width = 18, height = 12, units="cm")
 ```
-For all cases, we find that the value of the optimal, simple, and minimax regret ns are pretty similiar over the interval estimate of $\sigma$. This suggests that a fixed design can be very robust to misspecification of $\sigma$ (since moving to the optimal n would not improve value by much), and that the simple fixed design is almost as good a choice as the minimax regret design.
+For all cases, we find that the value of the optimal, simple, and minimax regret ns are pretty similar over the interval estimate of $\sigma$. This suggests that a fixed design can be very robust to misspecification of $\sigma$ (since moving to the optimal n would not improve value by much), and that the simple fixed design is almost as good a choice as the minimax regret design.
 
 This was for a specific choice of point and interval estimate of $\sigma$. We would like to see what happens when these vary - in particular, does the minimax regret n vary with them? We do this by making a grid of point estimates and degrees of freedom, and plotting the resulting minimax regret n.
 
@@ -478,6 +478,93 @@ p3b
 These plots show firstly that the upper CI method always gives a higher n than the power-value approach, but can give a lower n than the precision-value approach. The differences can be very large, over the scenarios we have considered. Obviously the value-based methods always have lower maximum regret, but there are regions of the scenario space where the difference is small (particularly when the point estimate is small, meaning that the upper CI does not overinflate the sample size by too much).
 
 [It might be useful to give a table of (minimax regret) optimal sample sizes for a range of scenarios. One approach is to determine value function parameters such that the (value) optimal sample size is typical in some way. For example, we could find a value function corresponding to choosing 80% power to detect a standardised effect size of 0.3. But this is tricky now since we've added a setup cost, so no unique solution. Better to just provide the software to find the n for any given scenario.]
+
+## SSR based on recruitment rates
+
+One conclusion we can draw from the above analysis is that sample size re-estimation based on updated estimates of the standard deviation nuisance parameter aren't really worthwhile, since the resulting locally optimal design will have a similar value as the robust minimax regret design. Another thing which we might be able to re-estimate, though, is the recruitment rate of the trial. We can think about our value function as having both a sample size and a time component, e.g. in the power case
+
+$$
+v_1(n, \sigma; \lambda_1, c_1)  = \underbrace{1 - \Phi\left(z_{1 - \alpha} - \frac{\delta_a}{\sqrt{2\sigma^2/n}}\right)}_\textrm{Power} - \lambda_1 n - lambda_2 t c_1,
+$$
+
+where $t$ is the (expected) time taken to recruit the required $n$ patients. If the average time to recruit is $\gamma$, then we can rewrite the relevant component as
+
+$$
+- \lambda_1 n - \lambda_2 t = - (\lambda_1 + \lambda_2 \gamma) n,
+$$
+
+So our analysis above all follows if we have a fixed $\gamma$. If we assess recruitment rates at an interim analysis, this could lead to a revised estimate of $\gamma$. A slower than expected recruitment rate, for example, would correspond to a higher cost associated with $n$. Depending on how we weight the attributes $n$ and $t$, this re-estimate of $\gamma$ could lead to a much more considerable change in our optimal design than any re-estimate of $\sigma$. 
+
+To examine this we want a plot analogous to the one above where now we vary the true recruitment rate and look at the value of a fixed design (or designs, i.e. the simple one and the minimax one) and compare against the value of the locally optimal design. The above reasoning would suggest the fixed designs would become suboptimal much faster as we move away from the initial recruitment rate estimate. This might be all we need to conclude that SSR based on recruitment rates might be much more useful than based on $\sigma$.
+
+```{r}
+# First, choose a point estimate and construct a 95% CI around it
+# Gamma = exp. number recruited in total over a month
+gamma_est <- 25; 
+# For an estimated gamma, lower and upper CI limits are
+lo <- qchisq(0.025, 2*gamma_est)/2
+up <- qchisq(1 - 0.025, 2*gamma_est + 2)/2
+sig <- 1
+
+plots2 <- vector("list", 4)
+for(i in 1:4){
+  lambda <- c(lambda1, lambda2)[i]
+  
+  C <- c(c1, c2)[i]
+  
+  df <- expand.grid(gamma = c(seq(lo-5, up+5, length.out = 50), gamma_est),
+                    n = 2:500)
+  
+  # Change overall lambda based on recruitment rate
+  lambda_rel <- 20 # relative weight of time (in months) versus n
+  lambda_o <- lambda/(1 + 2*lambda_rel/25)
+  lambda <- lambda_o + 2*lambda_rel*lambda_o/df$gamma
+  
+  if(i < 3){
+    df$v <- v1(n = df$n, sig = sig, lambda1 = lambda, c1 = C)
+  } else {
+    df$v <- v2(n = df$n, sig = sig, lambda2 = lambda, c2 = C)
+  }
+  
+  df_wide <- reshape(df, idvar = "gamma", direction = "wide", timevar = "n", v.names = "v")
+  
+  # Get maximum value at each gamma over set of ns
+  df2 <- df_wide[,1, drop = FALSE]
+  v_opt <- apply(df_wide[,2:ncol(df_wide)], 1, max)
+  
+  # Transform value into regret
+  df_wide_reg <- df_wide
+  df_wide_reg[, 2:ncol(df_wide_reg)] <- v_opt -  df_wide_reg[, 2:ncol(df_wide_reg)]
+  
+  # Get minimax regret n index
+  #n_mm_ind <- which.min(apply(df_wide_reg[df_wide_reg$gamma > lo & df_wide_reg$gamma < up, 2:ncol(df_wide_reg)], 2, max))
+  
+  # Get minimax regret n  value at each sigma
+  #v_mm <- df_wide[, 1 + n_mm_ind]
+  
+  # Get n using point estimate gamma = 0.156
+  n_s_ind <- which.max(df_wide[df_wide$gamma == gamma_est, 2:ncol(df_wide)])
+  
+  # Get simple n value at each gamma
+  v_s <- df_wide[, 1 + n_s_ind]
+  
+  df3 <- data.frame(gamma = rep(df_wide$gamma, 2),
+                    v = c(v_opt, v_s),
+                    t = c(rep(c("Optimal", "Simple"), each = length(df_wide$gamma))))
+  
+
+  
+  plots2[[i]] <- ggplot(df3, aes(gamma, v, colour = t)) + geom_line() +
+    scale_colour_manual(name = "", values = cols) +
+    geom_vline(xintercept = c(lo, up), linetype = 2) +
+    ylab("Value") + xlab("Recruitment") +
+    theme_minimal()
+}
+
+p2 <- (plots2[[1]] + plots2[[3]]) /(plots2[[2]] + plots2[[4]]) + plot_layout(guides = "collect") & theme(legend.position = 'bottom')
+p2
+#ggsave("./paper/figures/p2.pdf", p2, width = 18, height = 12, units="cm")
+```
 
 ## Uncertain effect size
 
