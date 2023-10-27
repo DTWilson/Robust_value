@@ -566,6 +566,75 @@ p2
 #ggsave("./paper/figures/p2.pdf", p2, width = 18, height = 12, units="cm")
 ```
 
+Can we further extend to looking at retention? This will again affect the value function, now through impacting the power component. This is really just the same as adjusting the standard deviation though, which is what we end up doing here when implementing it to avoid having to change our value functions. So not really worth reporting, in comparison to the recruitment rate case which is different enough to be interesting.
+
+```{r}
+# First, choose a point estimate and construct a 95% CI around it
+# tau = exp. proportion succesfully followed-up
+tau_est <- 0.8
+# For an estimated gamma, lower and upper CI limits are
+lo <- tau_est - 1.96*sqrt(tau_est*(1-tau_est)/30)
+up <- tau_est + 1.96*sqrt(tau_est*(1-tau_est)/30)
+sig <- 0.8
+
+plots2 <- vector("list", 4)
+for(i in 1:4){
+  lambda <- c(lambda1, lambda2)[i]
+  
+  C <- c(c1, c2)[i]
+  
+  df <- expand.grid(tau = c(seq(0.6, 1, length.out = 50), tau_est),
+                    n = 2:500)
+  
+  # Mimic the effect of loss to follow up by adjusting sigma
+  sigs <- sig/df$tau
+  
+  if(i < 3){
+    df$v <- v1(n = df$n, sig = sigs, lambda1 = lambda, c1 = C)
+  } else {
+    df$v <- v2(n = df$n, sig = sigs, lambda2 = lambda, c2 = C)
+  }
+  
+  df_wide <- reshape(df, idvar = "tau", direction = "wide", timevar = "n", v.names = "v")
+  
+  # Get maximum value at each gamma over set of ns
+  df2 <- df_wide[,1, drop = FALSE]
+  v_opt <- apply(df_wide[,2:ncol(df_wide)], 1, max)
+  
+  # Transform value into regret
+  df_wide_reg <- df_wide
+  df_wide_reg[, 2:ncol(df_wide_reg)] <- v_opt -  df_wide_reg[, 2:ncol(df_wide_reg)]
+  
+  # Get minimax regret n index
+  #n_mm_ind <- which.min(apply(df_wide_reg[df_wide_reg$gamma > lo & df_wide_reg$gamma < up, 2:ncol(df_wide_reg)], 2, max))
+  
+  # Get minimax regret n  value at each sigma
+  #v_mm <- df_wide[, 1 + n_mm_ind]
+  
+  # Get n using point estimate gamma = 0.156
+  n_s_ind <- which.max(df_wide[df_wide$tau == tau_est, 2:ncol(df_wide)])
+  
+  # Get simple n value at each gamma
+  v_s <- df_wide[, 1 + n_s_ind]
+  
+  df3 <- data.frame(tau = rep(df_wide$tau, 2),
+                    v = c(v_opt, v_s),
+                    t = c(rep(c("Optimal", "Simple"), each = length(df_wide$tau))))
+  
+
+  
+  plots2[[i]] <- ggplot(df3, aes(tau, v, colour = t)) + geom_line() +
+    scale_colour_manual(name = "", values = cols) +
+    geom_vline(xintercept = c(lo, up), linetype = 2) +
+    ylab("Value") + xlab("Retention") +
+    theme_minimal()
+}
+
+p2 <- (plots2[[1]] + plots2[[3]]) /(plots2[[2]] + plots2[[4]]) + plot_layout(guides = "collect") & theme(legend.position = 'bottom')
+p2
+#ggsave("./paper/figures/p2.pdf", p2, width = 18, height = 12, units="cm")
+```
+
 ## Uncertain effect size
 
 Our approach gives us a principled way to design a trial when there is uncertainty in the nuisance parameter. Can we extend these ideas to deal with uncertainty in the effect? 
