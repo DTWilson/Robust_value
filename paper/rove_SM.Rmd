@@ -1,0 +1,185 @@
+---
+title: "Robust, value-based sample size determination for clinical trials when nuisance parameters are unknown - supplementary material"
+author: "D. T. Wilson"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: 
+  html_document:
+    theme: united
+    toc: yes
+    toc_float:
+      collapsed: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+require(ggplot2)
+require(viridis)
+require(patchwork)
+require(RColorBrewer)
+cols <- brewer.pal(8, "Dark2") 
+```
+
+This document provides the code implementing the methods described in the associated manuscript and reproduces all its figures and results.
+
+## Problem
+
+Consider a two-arm trial with a normal endpoint which will compare the means in each group via a t-test. Denote the variance of the endpoint (common across arms) by $\sigma^2$, and the target difference under the alternative hypothesis (which the trial will be powered to detect) by $\delta_a$. Let the sample size in each arm of the trial be denoted by $n$.
+
+## Methods
+
+We propose two value functions:
+$$
+\begin{align}
+v_1(n, \sigma; \lambda_1, c_1) & = \underbrace{1 - \Phi\left(z_{1 - \alpha} - \frac{\delta_a}{\sqrt{2\sigma^2/n}}\right)}_\textrm{Power} - \lambda_1 n - c_1 \\
+v_2(n, \sigma; \lambda_2, c_2) & = \underbrace{\sqrt{\frac{n}{2\sigma^2}}}_\textrm{Precision} - \lambda_2 n - c_2.
+\end{align}
+$$
+
+Each value function has a benefit component (the power of the trial and the sampling precision of the estimated mean difference, respectively) offset by a cost component (a multiple of the sample size and a fixed setup cost in each case). These value functions imply a constant trade-off between the sample size of the trial and its power/precision, with the rate given by the parameters $\lambda_1$ and $\lambda_2$. They also include fixed set-up costs, $c_1$ and $c_2$.
+
+## Illustration
+
+Consider the case where the MCID is  $\delta_a = 0.3$ and we fix the (one-sided) type I error rate at $\alpha = 0.025$. We suppose we have a point estimate of $\sigma = 1$ which was derived from some pilot trial data with 30 patients in each arm. Hard-coding these into the value functions gives
+
+```{r}
+v1 <- function(n, sig, lambda1, c1) {
+  # Power based value function
+  1-pt(qt(0.975, 2*(n-1)), 2*(n-1), 0.3/sqrt(2*sig^2/n)) - lambda1*n - c1
+}
+
+v2 <- function(n, sig, lambda2, c2) {
+  # Precision based value function
+  sqrt(n/(2*sig^2)) - lambda2*n - c2
+}
+```
+
+We choose two values for each of $\lambda_1$ and $\lambda_2$, representing sampling costs. These are chosen to give, for their respective value functions, locally optimal sample sizes of 176 and 110 when $\sigma = 1$. We then choose the setup cost parameters $c_1$ and $c_2$ to be equivalent to sampling 15 participants (per arm).
+
+```{r}
+# Define some example trade-offs
+lambda1 <- c(0.00224, 0.00392); lambda2 <- c(0.02668, 0.0337)
+
+# Take a common fixed cost in units of sample size
+n_cost <- 15
+c1 <- lambda1*n_cost; c2 <- lambda2*n_cost
+```
+
+To illustrate these scenarios, we plot power and precision functions for $\sigma = 1$ and $\sigma = 1.3$ along with the value function contours, and highlight the locally optimal sample size in each case and the interval method sample size.
+
+```{r}
+plots <- vector("list", 4)
+for(i in 1:4){
+  lambda <- c(lambda1, lambda2)[i]
+  C <- c(c1, c2)[i]
+  
+  df <- data.frame(n=seq(4,500,1))
+  df <- rbind(df, df)
+  df$sig <- c(rep(1, nrow(df)/2), rep(1.3*1, nrow(df)/2))
+  if(i < 3){
+    df$v <- v1(n = df$n, sig = df$sig, lambda1 = lambda, c1 = C)
+  } else {
+    df$v <- v2(n = df$n, sig = df$sig, lambda2 = lambda, c2 = C)
+  }
+  df$p <- df$v + lambda*df$n + C
+  
+  opt1 <- df[which.max(df$v*(df$sig == 1)),]
+  opt2 <- df[which.max(df$v*(df$sig == 1.3)),]
+  
+  gr <- expand.grid(n = seq(4, 500, l = 10),
+                    p = seq(min(df$p), max(df$p), l = 10))
+  gr$v <- gr$p - lambda*gr$n - C
+  
+  plots[[i]] <- ggplot(df, aes(n, p)) + geom_line(aes(colour=as.factor(sig))) +
+    #geom_hline(yintercept = 0.8, linetype=2) +
+    geom_contour(data = gr, aes(z = v), alpha = 0.5, colour = cols[3]) +
+    geom_contour(data = gr, aes(z = v), breaks = c(C), colour = cols[4]) +
+    geom_point(data = df[as.numeric(row.names(rbind(opt1, opt2))), ]) +
+    xlab("Sample size") +
+    scale_colour_manual(values=cols[1:2], labels=round(c(1, 1.3), 2)) +
+    labs(colour = "SD") +
+    theme_minimal()
+  
+  if(i < 3){
+    plots[[i]] <- plots[[i]] + ylab("Power")
+  } else {
+    plots[[i]] <- plots[[i]] + ylab("Precision")
+  }
+}
+
+
+p1 <- (plots[[1]] + plots[[3]]) /(plots[[2]] + plots[[4]]) + plot_layout(guides = "collect") & theme(legend.position = 'bottom')
+p1
+
+ggsave("./figures/example_1_app.pdf", width = 18, height = 14, units="cm")
+
+plots[[1]]
+
+ggsave("./figures/example_1.pdf", width = 14, height = 9, units="cm")
+```
+
+To further explore the relationship between SD and sample size we can plot the latter as a function of the former, with the official method as a comparator.
+
+```{r}
+mm_reg_n <- function(sig, lambda, c, i) {
+  n <- seq(4,900,1)
+  if(i < 3){
+    v <- v1(n = n, sig = sig, lambda1 = lambda, c1 = c)
+  } else {
+    v <- v2(n = n, sig = sig, lambda2 = lambda, c2 = c)
+  }
+  if(max(v) > 0) {
+    n[which.max(v)]
+  } else {
+    0
+  }
+}
+
+off_n <- function(sig) {
+  n <- seq(4,800,1)
+  p <- 1-pt(qt(0.975, 2*(n-1)), 2*(n-1), 0.3/sqrt(2*sig^2/n))
+  n[p>0.8][1]
+}
+
+
+plots <- vector("list", 4)
+for(i in 1:4){
+  lambda <- c(lambda1, lambda2)[i]
+  c <- c(c1, c2)[i]
+  
+  df <- data.frame(sig = seq(0.5, 2, 0.01))
+  
+  df$n_opt <- sapply(df$sig, mm_reg_n, lambda=lambda, c=c, i=i)
+  df$n_off <- sapply(df$sig, off_n)
+  
+  df <- melt(df, id.vars = "sig")
+  names(df)[2:3] <- c("m", "n")
+
+  plots[[i]] <- ggplot(df, aes(sig, n, colour = m)) + geom_line() +
+    scale_colour_manual(values=cols[1:2], name = "Method", labels = c("Value-based", "Standard")) +
+    xlab("SD") +
+    theme_minimal()
+}
+
+
+p2 <- (plots[[1]] + plots[[3]]) /(plots[[2]] + plots[[4]]) + plot_layout(guides = "collect") & theme(legend.position = 'bottom')
+p2
+
+ggsave("./figures/example_2_app.pdf", width = 18, height = 14, units="cm")
+
+plots[[1]]
+
+ggsave("./figures/example_2.pdf", width = 14, height = 9, units="cm")
+```
+
+
+## Evaluation
+
+
+
+## Figures
+
+```{r}
+#ggsave("./figures/ocs.pdf", height=9, width=11, units="cm")
+#ggsave("./figures/corr.eps", height=9, width=14, units="cm", device = cairo_ps())
+#ggsave("./figures/eval_np30.eps", height=16, width=18, units="cm", device = cairo_ps())
+```

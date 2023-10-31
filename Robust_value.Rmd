@@ -386,17 +386,17 @@ for(i in 1:4){
 
     # Find the difference in maximum regret of the two methods, and translate
     # this into units of sample size.
-    df$r_dif <- (df$r_ci - df$r)/lambda
+    df$r_dif <- (df$r_fix - df$r)/lambda
         
     # Use the non-central t method of Julious
-    #ns2 <- 3:1000
-    #if(i == 1 | i == 2){
-    #  z <- (2*qt(0.8, df$k[j], qt(0.975, 2*ns2 - 2))^2)*(df$sig[j]^2)/(0.3^2)
-    #} else {
-    #  z <- (2*qt(0.8, df$k[j], qt(0.975, 2*ns2 - 2))^2)*(df$sig[j]^2)/(0.3794427^2)
-    #}
-    #df$n_nct[j] <- ns2[ns2 >= z][1]
-    
+    ns2 <- 3:1000
+    if(i == 1 | i == 2){
+      z <- (2*qt(0.8, df$k[j], qt(0.975, 2*ns2 - 2))^2)*(df$sig[j]^2)/(0.3^2)
+    } else {
+      z <- (2*qt(0.8, df$k[j], qt(0.975, 2*ns2 - 2))^2)*(df$sig[j]^2)/(0.3794427^2)
+    }
+    df$n_nct[j] <- ns2[ns2 >= z][1]
+    df$r_nct[j] <- max(regs[which(ns == df$n_nct[j]),])
 
     if(j == scn_ind) {
       df2 <- data.frame(n = ns)
@@ -417,8 +417,8 @@ for(i in 1:4){
     theme_minimal()
   
   # Difference in minimax and constrained n
-  plots3a[[i]] <- ggplot(df, aes(k)) + geom_tile(aes(y = sig, fill = n_ci - n)) +
-    scale_fill_viridis(discrete=FALSE, limits = c(-400,500)) + 
+  plots3a[[i]] <- ggplot(df, aes(k)) + geom_tile(aes(y = sig, fill = n_nct - n)) +
+    scale_fill_viridis(discrete=FALSE)+#, limits = c(-400,500)) + 
       #geom_line(data = df[df$sig == 1,], aes(y = up)) +
       #geom_line(data = df[df$sig == 1,], aes(y = lo)) +
       ylim(c(0.6, 1.5)) +
@@ -426,8 +426,8 @@ for(i in 1:4){
     theme_minimal()
     
   # Difference in minimax and constrained regret, in units of sample size
-  plots3b[[i]] <- ggplot(df, aes(k)) + geom_tile(aes(y = sig, fill = r_dif)) +
-    scale_fill_viridis(discrete=FALSE, limits = c(0,400)) + 
+  plots3b[[i]] <- ggplot(df, aes(k)) + geom_tile(aes(y = sig, fill = (r_nct - r)/lambda)) +
+    scale_fill_viridis(discrete=FALSE)+#, limits = c(0,400)) + 
       #geom_line(data = df[df$sig == 1,], aes(y = up)) +
       #geom_line(data = df[df$sig == 1,], aes(y = lo)) +
       ylim(c(0.6, 1.5)) +
@@ -484,7 +484,7 @@ These plots show firstly that the upper CI method always gives a higher n than t
 One conclusion we can draw from the above analysis is that sample size re-estimation based on updated estimates of the standard deviation nuisance parameter aren't really worthwhile, since the resulting locally optimal design will have a similar value as the robust minimax regret design. Another thing which we might be able to re-estimate, though, is the recruitment rate of the trial. We can think about our value function as having both a sample size and a time component, e.g. in the power case
 
 $$
-v_1(n, \sigma; \lambda_1, c_1)  = \underbrace{1 - \Phi\left(z_{1 - \alpha} - \frac{\delta_a}{\sqrt{2\sigma^2/n}}\right)}_\textrm{Power} - \lambda_1 n - lambda_2 t c_1,
+v_1(n, \sigma; \lambda_1, c_1)  = \underbrace{1 - \Phi\left(z_{1 - \alpha} - \frac{\delta_a}{\sqrt{2\sigma^2/n}}\right)}_\textrm{Power} - \lambda_1 n - \lambda_2 t  -c_1,
 $$
 
 where $t$ is the (expected) time taken to recruit the required $n$ patients. If the average time to recruit is $\gamma$, then we can rewrite the relevant component as
@@ -493,9 +493,9 @@ $$
 - \lambda_1 n - \lambda_2 t = - (\lambda_1 + \lambda_2 \gamma) n,
 $$
 
-So our analysis above all follows if we have a fixed $\gamma$. If we assess recruitment rates at an interim analysis, this could lead to a revised estimate of $\gamma$. A slower than expected recruitment rate, for example, would correspond to a higher cost associated with $n$. Depending on how we weight the attributes $n$ and $t$, this re-estimate of $\gamma$ could lead to a much more considerable change in our optimal design than any re-estimate of $\sigma$. 
+So our analysis above follows if we have a fixed $\gamma$. If we assess recruitment rates at an interim analysis, this could lead to a revised estimate of $\gamma$. A slower than expected recruitment rate, for example, would correspond to a higher cost associated with $n$. Depending on how we weight the attributes $n$ and $t$, this re-estimate of $\gamma$ could lead to a larger change in our optimal design than any re-estimate of $\sigma$. 
 
-To examine this we want a plot analogous to the one above where now we vary the true recruitment rate and look at the value of a fixed design (or designs, i.e. the simple one and the minimax one) and compare against the value of the locally optimal design. The above reasoning would suggest the fixed designs would become suboptimal much faster as we move away from the initial recruitment rate estimate. This might be all we need to conclude that SSR based on recruitment rates might be much more useful than based on $\sigma$.
+To examine this we want a plot analogous to the one above where now we vary the true recruitment rate and look at the value of a fixed design (or designs, i.e. the simple one and the minimax one) and compare against the value of the locally optimal design.
 
 ```{r}
 # First, choose a point estimate and construct a 95% CI around it
